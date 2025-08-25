@@ -1,24 +1,18 @@
 ---
-name: Chore
-about: Describe this issue template's purpose here.
-title: ''
+name: 작업 / 잡일
+about: 리팩토링, 설정 변경, 문서 작업 등 기능과 직접 관련 없는 일반 작업
+title: "[CHORE] "
 labels: chore
-assignees: ''
-
 ---
 
-name: 🧹 Chore / Task
-about: 잡일, 리팩토링, 설정 변경 등 일반 작업을 등록해주세요.
-title: "[CHORE] "
-labels: [chore]
-assignees: []
+## #️⃣ 작업 내용
 
-body:
-  - type: textarea
-    attributes:
-      label: 작업 내용
-      description: 어떤 작업을 할 예정인지 작성해주세요.
-  - type: textarea
-    attributes:
-      label: 완료 조건
-      description: 어떤 상태가 되면 작업이 끝난 건지 적어주세요.
+> 어떤 작업을 할 예정인지 간단히 설명해주세요.
+
+## #️⃣ 작업 목적
+
+> 이 작업을 왜 하는지, 프로젝트에 어떤 영향을 주는지 설명해주세요.
+
+## 📎 참고할만한 자료(선택)
+
+> 관련 문서, 링크 등이 있다면 여기에 첨부해주세요.
