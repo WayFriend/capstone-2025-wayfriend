@@ -1,38 +1,26 @@
-name: "🐞 Bug Report"
-description: "기능이 정상적으로 동작하지 않을 때 작성해주세요."
+---
+name: 버그 리포트
+about: 버그 발생 시 이 템플릿을 사용해 주세요
 title: "[BUG] "
-labels: ["bug"]
-assignees: []
-body:
-  - type: textarea
-    id: description
-    attributes:
-      label: 문제 설명
-      description: 어떤 문제가 발생했는지 자세히 작성해주세요.
-      placeholder: 예) 로그인 버튼 클릭 시 500 에러 발생
-    validations:
-      required: true
+labels: bug
+---
 
-  - type: textarea
-    id: steps
-    attributes:
-      label: 재현 방법
-      description: 문제가 어떻게 발생했는지 단계별로 작성해주세요.
-      placeholder: "1) ...\n2) ...\n3) ..."
-    validations:
-      required: true
+## #️⃣ 어떤 버그인가요?
 
-  - type: textarea
-    id: expected
-    attributes:
-      label: 기대 동작
-      description: 원래 어떻게 동작해야 했는지 작성해주세요.
-    validations:
-      required: true
+> #어떤 버그인지 간결하게 설명해주세요.
 
-  - type: textarea
-    id: logs
-    attributes:
-      label: 스크린샷 / 로그
-      description: 가능하다면 이미지/로그를 첨부해주세요.
-      placeholder: 이미지나 콘솔 로그를 붙여주세요.
+## #️⃣ 어떤 상황에서 발생한 버그인가요?
+
+> (가능하면) Given-When-Then 형식으로 서술해주세요.
+
+## #️⃣ 예상 결과
+
+> 예상했던 정상적인 결과가 어떤 것이었는지 설명해주세요.
+
+## #️⃣ 실제 결과
+
+> 실제로 어떤 결과가 발생했는지 설명해주세요.
+
+## 📎 참고할만한 자료(선택)
+
+> 관련 문서, 버그 발생한 스크린샷, 로그 또는 예시 등이 있다면 여기에 첨부해주세요
