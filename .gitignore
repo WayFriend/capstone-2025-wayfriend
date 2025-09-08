@@ -9,4 +9,22 @@ logs/
 
 # 환경 설정 파일 제외
 .env
+.env.*
+!.env.example
 config/local.json
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# vuepress v2.x temp and cache directory
+.temp
+
+# === Python (FastAPI) 관련 무시 항목 ===
+venv/
+**/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
