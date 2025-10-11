@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 중앙 정렬을 위한 커스텀 스타일 */
+.auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+}
+
+:root {
+  --primary-color: #137fec;
+  --secondary-color: #e7edf3;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+}
+
+.group:hover .group-hover-visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: Inter, "Noto Sans", sans-serif;
+  background-color: #f9fafb;
+  color: #111827;
+}
