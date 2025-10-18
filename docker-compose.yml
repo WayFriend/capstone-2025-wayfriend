@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-appuser}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-appser0123456}
     ports:
-      - "5432:5432"   # 로컬에서 DB툴 접속 필요 없으면 생략 가능
+      - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -15,7 +15,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 15
-    profiles: ["vm", "dev"]
 
   backend:
     build: .
@@ -23,39 +22,33 @@ services:
     env_file:
       - .env
     environment:
-      # 앱에서 사용할 DB 연결정보(코드가 getenv로 읽도록 이미 바꿨으니 OK)
       POSTGRES_DB: ${POSTGRES_DB:-appdb}
       POSTGRES_USER: ${POSTGRES_USER:-appuser}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-appser0123456}
       DATABASE_HOST: ${DATABASE_HOST:-db}
       DATABASE_PORT: ${DATABASE_PORT:-5432}
-      # CORS 허용(프론트 dev 서버 도메인/포트)
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://34.239.248.132:5173}
     ports:
-      - "50080:50080"
+      - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
-    command: uvicorn main:app --host 0.0.0.0 --port 50080
-    profiles: ["vm", "dev"]
+    command: uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
 
-  frontend:
-    image: node:20-alpine
-    container_name: wayfriend-frontend
-    working_dir: /app
-    # 팀원 로컬에서 프론트 개발용
-    volumes:
-      - ./frontend:/app
-    environment:
-      # 프론트가 호출할 백엔드 주소(팀원 로컬 개발시 기본값)
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:50080}
-    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
-    ports:
-      - "5173:5173"
-    depends_on:
-      backend:
-        condition: service_started
-    profiles: ["dev"]
+  # frontend:
+  #   image: node:20-alpine
+  #   container_name: wayfriend-frontend
+  #   working_dir: /app
+  #   volumes:
+  #     - ./frontend:/app
+  #   environment:
+  #     VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+  #   command: sh -c "npm ci && npm run dev -- --host 0.0.0.0 --port 5173"
+  #   ports:
+  #     - "5173:5173"
+  #   depends_on:
+  #     backend:
+  #       condition: service_started
 
 volumes:
   db_data:
