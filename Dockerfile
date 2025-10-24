@@ -19,5 +19,5 @@ ENV TZ=Asia/Seoul
 # 포트 노출
 EXPOSE 8000
 
-# FastAPI 실행
-CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# FastAPI 실행 (운영 환경)
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "backend.main:app", "--bind", "0.0.0.0:8000", "--workers", "4"]

@@ -13,6 +13,6 @@ def signup_user(db, user_create):
 def login_user(db, user_login):
     user = crud.get_user_by_email(db, user_login.email)
     if not user or not utils.verify_password(user_login.password, user.password):
-        raise HTTPException(status_code=400, detail="로그인 실패")
+        raise HTTPException(status_code=409, detail="로그인 실패")
     token = utils.create_access_token(data={"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
