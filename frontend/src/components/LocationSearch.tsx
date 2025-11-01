@@ -195,18 +195,7 @@ const LocationSearch: React.FC<LocationSearchProps> = ({
       })() && (
         <div
           ref={resultsRef}
-          className="absolute left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto"
-          style={{
-            zIndex: 1000,
-            position: 'absolute',
-            top: '100%',
-            left: 0,
-            right: 0,
-            width: '100%',
-            marginTop: '8px',
-            backgroundColor: 'white',
-            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)'
-          }}
+          className="absolute top-full left-0 right-0 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto z-[1000]"
         >
           {searchResults.map((result, index) => (
             <div
