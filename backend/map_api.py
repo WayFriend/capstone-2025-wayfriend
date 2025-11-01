@@ -41,11 +41,11 @@ NAVER_SEARCH_CLIENT_SECRET = os.getenv("NAVER_SEARCH_CLIENT_SECRET")
 
 # 디버깅 정보 출력
 print(f"[DEBUG] Environment variables loaded:")
-print(f"NAVER_MAPS_JS_CLIENT_ID: {NAVER_MAPS_JS_CLIENT_ID[:8] if NAVER_MAPS_JS_CLIENT_ID else 'None'}...")
-print(f"NAVER_APIGW_KEY_ID: {NAVER_APIGW_KEY_ID[:8] if NAVER_APIGW_KEY_ID else 'None'}...")
-print(f"NAVER_APIGW_KEY: {NAVER_APIGW_KEY[:8] if NAVER_APIGW_KEY else 'None'}...")
-print(f"NAVER_SEARCH_CLIENT_ID: {NAVER_SEARCH_CLIENT_ID[:8] if NAVER_SEARCH_CLIENT_ID else 'None'}...")
-print(f"NAVER_SEARCH_CLIENT_SECRET: {'***' if NAVER_SEARCH_CLIENT_SECRET else 'None'}")
+print(f"NAVER_MAPS_JS_CLIENT_ID loaded: {bool(NAVER_MAPS_JS_CLIENT_ID)}")
+print(f"NAVER_APIGW_KEY_ID loaded: {bool(NAVER_APIGW_KEY_ID)}")
+print(f"NAVER_APIGW_KEY loaded: {bool(NAVER_APIGW_KEY)}")
+print(f"NAVER_SEARCH_CLIENT_ID loaded: {bool(NAVER_SEARCH_CLIENT_ID)}")
+print(f"NAVER_SEARCH_CLIENT_SECRET loaded: {bool(NAVER_SEARCH_CLIENT_SECRET)}")
 
 # 네이버 지도 API 헤더
 def get_naver_headers():
