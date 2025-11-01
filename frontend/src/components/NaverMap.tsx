@@ -307,7 +307,6 @@ const NaverMap: React.FC<NaverMapProps> = ({
                 console.error('[ERROR] 3. 포트 번호 제외, 슬래시(/) 제거 필수');
                 console.error('[ERROR] 4. 저장 후 2-3분 대기 후 재시도');
                 console.error('[ERROR] 5. 브라우저 캐시 완전 삭제 후 재시도');
-                console.error('[ERROR] 5. 브라우저 캐시 완전 삭제 후 재시도');
 
                 // 사용자에게는 간단한 메시지만 표시
                 setError('지도 로딩에 실패했습니다. 잠시 후 다시 시도해주세요.');
