@@ -174,7 +174,16 @@ const NaverMap: React.FC<NaverMapProps> = ({
 
                   // 도메인 설정 안내 메시지
                   const currentOrigin = `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
-                  setError(`지도 인증에 실패했습니다.\n\n가능한 원인:\n1. NCP 콘솔에서 클라이언트 ID에 현재 도메인(${currentOrigin})이 등록되어 있는지 확인\n2. localhost와 127.0.0.1 모두 등록 필요할 수 있음\n3. 브라우저 캐시 및 쿠키 삭제 후 재시도`);
+                  // 개발자용 상세 정보는 콘솔에만 출력
+                  console.error('[ERROR] 지도 준비 시간이 초과되었습니다.');
+                  console.error('[ERROR] 현재 접속 정보:', currentOrigin);
+                  console.error('[ERROR] 가능한 원인:');
+                  console.error(`[ERROR] 1. NCP 콘솔에서 클라이언트 ID에 현재 도메인(${currentOrigin})이 등록되어 있는지 확인`);
+                  console.error('[ERROR] 2. localhost와 127.0.0.1 모두 등록 필요할 수 있음');
+                  console.error('[ERROR] 3. 브라우저 캐시 및 쿠키 삭제 후 재시도');
+
+                  // 사용자에게는 간단한 메시지만 표시
+                  setError('지도 로딩에 실패했습니다. 잠시 후 다시 시도해주세요.');
                 }
               }, 2000);
             }
@@ -182,10 +191,31 @@ const NaverMap: React.FC<NaverMapProps> = ({
 
           // 인증 실패 전역 콜백 함수 설정 (신규 API 문서 참고)
           (window as any).navermap_authFailure = function() {
-            console.error('[ERROR] 네이버 지도 인증 실패 콜백 호출됨');
             const currentProtocol = window.location.protocol;
             const currentHostname = window.location.hostname;
-            setError(`지도 인증에 실패했습니다.\n\n📋 확인 사항:\n1. NCP 콘솔 → Maps → Application → [인증 정보]\n2. Web 서비스 URL에 다음을 등록 (슬래시 없이!):\n   • ${currentProtocol}//${currentHostname}\n   • ${currentProtocol}//127.0.0.1\n3. 포트 번호 제외, 슬래시(/) 제거 필수\n4. 저장 후 2-3분 대기 후 재시도\n5. 브라우저 캐시 완전 삭제 후 재시도`);
+            const currentPort = window.location.port;
+            const currentOrigin = `${currentProtocol}//${currentHostname}${currentPort ? ':' + currentPort : ''}`;
+
+            // 개발자용 상세 정보는 콘솔에만 출력
+            console.error('[ERROR] 네이버 지도 인증 실패 콜백 호출됨');
+            console.error('[ERROR] 현재 접속 정보:', {
+              protocol: currentProtocol,
+              hostname: currentHostname,
+              port: currentPort,
+              fullOrigin: currentOrigin,
+              clientId: naverClientId?.substring(0, 8) + '...'
+            });
+            console.error('[ERROR] 해결 방법:');
+            console.error('[ERROR] 1. NCP 콘솔 → Maps → Application → [인증 정보]');
+            console.error(`[ERROR] 2. Web 서비스 URL에 다음을 등록 (슬래시 없이!):`);
+            console.error(`[ERROR]    • ${currentProtocol}//${currentHostname}`);
+            console.error(`[ERROR]    • ${currentProtocol}//127.0.0.1`);
+            console.error('[ERROR] 3. 포트 번호 제외, 슬래시(/) 제거 필수');
+            console.error('[ERROR] 4. 저장 후 2-3분 대기 후 재시도');
+            console.error('[ERROR] 5. 브라우저 캐시 완전 삭제 후 재시도');
+
+            // 사용자에게는 간단한 메시지만 표시
+            setError('지도 로딩에 실패했습니다. 잠시 후 다시 시도해주세요.');
           };
 
           // 지도 오류 이벤트 리스너 추가
@@ -207,9 +237,19 @@ const NaverMap: React.FC<NaverMapProps> = ({
             if (container) {
               const bgImage = window.getComputedStyle(container).backgroundImage;
               if (bgImage.includes('auth_fail')) {
-                console.error('[ERROR] 인증 실패 배경 이미지 감지됨:', bgImage);
                 const currentOrigin = `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
-                setError(`지도 인증에 실패했습니다.\n\nNCP 콘솔에서 클라이언트 ID(${naverClientId?.substring(0, 8)}...)에 다음 도메인을 등록해주세요:\n- ${currentOrigin}\n- http://localhost\n- http://127.0.0.1\n\n참고: https://navermaps.github.io/maps.js.ncp/docs/tutorial-2-Getting-Started.html`);
+
+                // 개발자용 상세 정보는 콘솔에만 출력
+                console.error('[ERROR] 인증 실패 배경 이미지 감지됨:', bgImage);
+                console.error('[ERROR] 현재 접속 정보:', currentOrigin);
+                console.error(`[ERROR] NCP 콘솔에서 클라이언트 ID(${naverClientId?.substring(0, 8)}...)에 다음 도메인을 등록해주세요:`);
+                console.error(`[ERROR] - ${currentOrigin}`);
+                console.error('[ERROR] - http://localhost');
+                console.error('[ERROR] - http://127.0.0.1');
+                console.error('[ERROR] 참고: https://navermaps.github.io/maps.js.ncp/docs/tutorial-2-Getting-Started.html');
+
+                // 사용자에게는 간단한 메시지만 표시
+                setError('지도 로딩에 실패했습니다. 잠시 후 다시 시도해주세요.');
               }
             }
           });
@@ -244,25 +284,35 @@ const NaverMap: React.FC<NaverMapProps> = ({
               console.log('[DEBUG] 컨테이너 배경 이미지:', bgImage);
 
               if (bgImage && bgImage.includes('auth_fail')) {
-                console.error('[ERROR] 인증 실패 배경 이미지가 감지되었습니다!');
-
                 // 현재 접속 URL 정보 수집
                 const currentProtocol = window.location.protocol; // http: 또는 https:
                 const currentHostname = window.location.hostname; // localhost
                 const currentPort = window.location.port; // 3000
                 const currentOrigin = `${currentProtocol}//${currentHostname}${currentPort ? ':' + currentPort : ''}`;
 
-                // 다양한 도메인 형식 안내
+                // 개발자용 상세 정보는 콘솔에만 출력
+                console.error('[ERROR] 인증 실패 배경 이미지가 감지되었습니다!');
                 console.error('[ERROR] 현재 접속 정보:', {
                   protocol: currentProtocol,
                   hostname: currentHostname,
                   port: currentPort,
-                  fullOrigin: currentOrigin
+                  fullOrigin: currentOrigin,
+                  clientId: naverClientId?.substring(0, 8) + '...'
+                });
+                console.error('[ERROR] 확인 사항:');
+                console.error('[ERROR] 1. NCP 콘솔 → Maps → Application → [인증 정보]');
+                console.error('[ERROR] 2. Web 서비스 URL에 다음을 등록 (슬래시 없이!):');
+                console.error(`[ERROR]    • ${currentProtocol}//${currentHostname}`);
+                console.error(`[ERROR]    • ${currentProtocol}//127.0.0.1`);
+                console.error('[ERROR] 3. 포트 번호 제외, 슬래시(/) 제거 필수');
+                console.error('[ERROR] 4. 저장 후 2-3분 대기 후 재시도');
+                console.error('[ERROR] 5. 브라우저 캐시 완전 삭제 후 재시도');
                 });
 
-                setError(`지도 인증에 실패했습니다.\n\n📋 확인 사항:\n1. NCP 콘솔 → Maps → Application → [인증 정보]\n2. Web 서비스 URL에 다음을 등록 (슬래시 없이!):\n   • ${currentProtocol}//${currentHostname}\n   • ${currentProtocol}//127.0.0.1\n3. 포트 번호 제외, 슬래시(/) 제거 필수\n4. 저장 후 2-3분 대기 후 재시도\n5. 브라우저 캐시 완전 삭제 후 재시도\n\n현재 접속: ${currentOrigin}\n클라이언트 ID: ${naverClientId?.substring(0, 8)}...`);
+                // 사용자에게는 간단한 메시지만 표시
+                setError('지도 로딩에 실패했습니다. 잠시 후 다시 시도해주세요.');
               } else {
-                console.log('[DEBUG] ✅ 배경 이미지 정상 - 인증 성공!');
+                console.log('[DEBUG] 배경 이미지 정상 - 인증 성공!');
               }
             }
 
@@ -311,7 +361,18 @@ const NaverMap: React.FC<NaverMapProps> = ({
 
                     // 도메인 설정 안내 메시지
                     const currentOrigin = `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
-                    setError(`지도 인증에 실패했습니다.\n\n가능한 원인:\n1. NCP 콘솔에서 클라이언트 ID에 현재 도메인(${currentOrigin})이 등록되어 있는지 확인\n2. localhost와 127.0.0.1 모두 등록 필요할 수 있음\n3. 브라우저 캐시 및 쿠키 삭제 후 재시도\n\n참고: https://navermaps.github.io/maps.js.ncp/docs/tutorial-2-Getting-Started.html`);
+                    
+                    // 개발자용 상세 정보는 콘솔에만 출력
+                    console.error('[ERROR] isReady가 false인 상태에서 타임아웃');
+                    console.error('[ERROR] 현재 접속 정보:', currentOrigin);
+                    console.error('[ERROR] 가능한 원인:');
+                    console.error(`[ERROR] 1. NCP 콘솔에서 클라이언트 ID에 현재 도메인(${currentOrigin})이 등록되어 있는지 확인`);
+                    console.error('[ERROR] 2. localhost와 127.0.0.1 모두 등록 필요할 수 있음');
+                    console.error('[ERROR] 3. 브라우저 캐시 및 쿠키 삭제 후 재시도');
+                    console.error('[ERROR] 참고: https://navermaps.github.io/maps.js.ncp/docs/tutorial-2-Getting-Started.html');
+
+                    // 사용자에게는 간단한 메시지만 표시
+                    setError('지도 로딩에 실패했습니다. 잠시 후 다시 시도해주세요.');
                   } else {
                     // 주기적으로 resize 트리거 시도
                     try {
