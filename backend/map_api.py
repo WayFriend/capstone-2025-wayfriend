@@ -215,15 +215,34 @@ async def geocode(request: GeocodeRequest):
                 return []
 
     except httpx.HTTPStatusError as e:
-        print(f"[ERROR] Naver API HTTP error: {e.response.status_code} - {e.response.text}")
-        raise HTTPException(status_code=502, detail="지도 API 연동 중 오류가 발생했습니다.")
-    except Exception as e:
-        print(f"[ERROR] Server error: {str(e)}")
+        error_msg = f"Naver API HTTP error: {e.response.status_code}"
+        print(f"[ERROR] {error_msg} - {e.response.text}")
         import traceback
         traceback.print_exc()
-        # 에러 발생 시에도 mock 데이터 반환
-        print("[WARN] Using mock data due to error")
-        return generate_mock_geocode_results(request.query)
+        # HTTP 오류는 클라이언트에 명확히 전달
+        raise HTTPException(
+            status_code=e.response.status_code if e.response.status_code >= 400 else 502,
+            detail=f"외부 API 호출 실패: {error_msg}"
+        )
+    except httpx.RequestError as e:
+        error_msg = f"Network error while calling Naver API: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=503,
+            detail="네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+        )
+    except Exception as e:
+        error_msg = f"Unexpected server error: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        import traceback
+        traceback.print_exc()
+        # 예상치 못한 서버 오류는 500으로 반환
+        raise HTTPException(
+            status_code=500,
+            detail="서버 오류가 발생했습니다. 관리자에게 문의해주세요."
+        )
 
 async def search_places_using_naver_search(query: str) -> List[GeocodeResult]:
     """네이버 검색 API를 사용하여 장소 검색"""
