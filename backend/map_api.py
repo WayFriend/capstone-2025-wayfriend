@@ -6,6 +6,7 @@ import os
 from typing import Dict, Any, List
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from pyproj import Transformer
 
 # .env 파일 로드
 load_dotenv()
@@ -311,8 +312,9 @@ async def search_places_using_naver_search(query: str) -> List[GeocodeResult]:
                         # 네이버 검색 API는 mapx, mapy를 제공하는데, 이를 위도/경도로 변환해야 함
                         # mapx: 경도(longitude), mapy: 위도(latitude)
                         # 일반적인 변환 공식 (네이버 좌표계를 WGS84로)
-                        lng = mapx_int / 10000000.0
-                        lat = mapy_int / 10000000.0
+                        # KATEC(EPSG:5178) → WGS84(EPSG:4326)
+                        transformer = Transformer.from_crs("EPSG:5178", "EPSG:4326", always_xy=True)
+                        lng, lat = transformer.transform(mapx_int, mapy_int)
 
                         print(f"[DEBUG] 네이버 좌표 변환: mapx={mapx_int}, mapy={mapy_int} -> lat={lat}, lng={lng}")
                     except (ValueError, TypeError) as e:
