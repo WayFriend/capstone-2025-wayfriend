@@ -531,11 +531,32 @@ async def get_directions(request: DirectionsRequest):
             return route_info
 
     except httpx.HTTPStatusError as e:
-        print(f"[ERROR] Naver API HTTP error: {e.response.status_code} - {e.response.text}")
-        return RouteInfo(distance="0m", duration="0분", steps=[])
+        error_msg = f"Naver API HTTP error: {e.response.status_code}"
+        print(f"[ERROR] {error_msg} - {e.response.text}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=e.response.status_code if e.response.status_code >= 400 else 502,
+            detail=f"경로 찾기 API 호출 실패: {error_msg}"
+        )
+    except httpx.RequestError as e:
+        error_msg = f"Network error while calling Naver API: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=503,
+            detail="네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+        )
     except Exception as e:
-        print(f"[ERROR] Server error: {str(e)}")
-        return RouteInfo(distance="0m", duration="0분", steps=[])
+        error_msg = f"Unexpected server error: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="서버 오류가 발생했습니다. 관리자에게 문의해주세요."
+        )
 
 def format_distance(meters: int) -> str:
     """거리를 포맷팅"""
@@ -648,8 +669,29 @@ async def get_static_map(request: StaticMapRequest):
                 print(f"[WARN] Static Map API error: {response.status_code}")
                 return await generate_placeholder_map(request)
 
+    except httpx.HTTPStatusError as e:
+        error_msg = f"Naver API HTTP error: {e.response.status_code}"
+        print(f"[ERROR] {error_msg} - {e.response.text}")
+        import traceback
+        traceback.print_exc()
+        # Static Map의 경우 오류 발생 시 플레이스홀더 반환 (사용자 경험 고려)
+        print("[WARN] Using placeholder map due to API error")
+        return await generate_placeholder_map(request)
+    except httpx.RequestError as e:
+        error_msg = f"Network error while calling Naver API: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        import traceback
+        traceback.print_exc()
+        # Static Map의 경우 오류 발생 시 플레이스홀더 반환 (사용자 경험 고려)
+        print("[WARN] Using placeholder map due to network error")
+        return await generate_placeholder_map(request)
     except Exception as e:
-        print(f"[ERROR] Static Map error: {str(e)}")
+        error_msg = f"Unexpected server error: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        import traceback
+        traceback.print_exc()
+        # Static Map의 경우 오류 발생 시 플레이스홀더 반환 (사용자 경험 고려)
+        print("[WARN] Using placeholder map due to unexpected error")
         return await generate_placeholder_map(request)
 
 async def generate_placeholder_map(request: StaticMapRequest):
@@ -685,9 +727,33 @@ async def reverse_geocode(request: ReverseGeocodeRequest):
             else:
                 return {"address": "주소를 찾을 수 없습니다."}
 
+    except httpx.HTTPStatusError as e:
+        error_msg = f"Naver API HTTP error: {e.response.status_code}"
+        print(f"[ERROR] {error_msg} - {e.response.text}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=e.response.status_code if e.response.status_code >= 400 else 502,
+            detail=f"역지오코딩 API 호출 실패: {error_msg}"
+        )
+    except httpx.RequestError as e:
+        error_msg = f"Network error while calling Naver API: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=503,
+            detail="네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
+        )
     except Exception as e:
-        print(f"[ERROR] Reverse Geocoding error: {str(e)}")
-        return {"address": "주소를 찾을 수 없습니다."}
+        error_msg = f"Unexpected server error: {str(e)}"
+        print(f"[ERROR] {error_msg}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail="서버 오류가 발생했습니다. 관리자에게 문의해주세요."
+        )
 
 if __name__ == "__main__":
     import uvicorn
