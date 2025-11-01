@@ -223,9 +223,7 @@ async def geocode(request: GeocodeRequest):
 
     except httpx.HTTPStatusError as e:
         print(f"[ERROR] Naver API HTTP error: {e.response.status_code} - {e.response.text}")
-        # HTTP 오류 시 mock 데이터 반환
-        print("[WARN] Using mock data due to API error")
-        return generate_mock_geocode_results(request.query)
+        raise HTTPException(status_code=502, detail="지도 API 연동 중 오류가 발생했습니다.")
     except Exception as e:
         print(f"[ERROR] Server error: {str(e)}")
         import traceback
