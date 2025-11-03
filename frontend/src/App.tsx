@@ -4,10 +4,11 @@ import Home from './pages/Home';
 import About from './pages/About';
 import Auth from './pages/Auth';
 import SavedRoutes from './pages/SavedRoutes';
+import FindRoute from './pages/FindRoute';
 import './styles/App.css';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'about' | 'auth' | 'saved' | 'explore' | 'profile'>('saved');
+  const [currentPage, setCurrentPage] = useState<'home' | 'about' | 'auth' | 'saved' | 'find-route' | 'profile'>('home');
 
   const renderPage = () => {
     switch (currentPage) {
@@ -19,20 +20,20 @@ function App() {
         return <Auth />;
       case 'saved':
         return <SavedRoutes />;
-      case 'explore':
-        return <div className="p-8 text-center">Explore page coming soon...</div>;
+      case 'find-route':
+        return <FindRoute />;
       case 'profile':
         return <div className="p-8 text-center">Profile page coming soon...</div>;
       default:
-        return <SavedRoutes />;
+        return <Home />;
     }
   };
 
   return (
-    <div className="relative flex size-full min-h-screen flex-col group/design-root overflow-x-hidden">
-      <div className="layout-container flex h-full grow flex-col">
+    <div className="relative flex w-full h-screen flex-col group/design-root overflow-x-hidden">
+      <div className="layout-container flex h-full flex-col w-full">
         <Header currentPage={currentPage} onPageChange={setCurrentPage} />
-        <main className="flex flex-1 justify-center py-8 px-4 sm:px-6 lg:px-8">
+        <main className="flex flex-1 w-full min-h-0">
           {renderPage()}
         </main>
       </div>
