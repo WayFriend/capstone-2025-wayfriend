@@ -1,9 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import NaverMap from '../components/NaverMap';
 import LocationSearch from '../components/LocationSearch';
 import RouteCalculator, { RouteInfo } from '../components/RouteCalculator';
+import { geocode } from '../utils/naverMapApi';
 
-const FindRoute: React.FC = () => {
+interface SavedRouteForNavigation {
+  start: string;
+  end: string;
+  startLocation?: { lat: number; lng: number; name: string };
+  endLocation?: { lat: number; lng: number; name: string };
+  mode?: 'walking' | 'wheelchair';
+  filter?: 'safest' | 'no-stairs' | 'recommended';
+}
+
+interface FindRouteProps {
+  savedRoute?: SavedRouteForNavigation | null;
+  onRouteLoaded?: () => void;
+}
+
+const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
   const [mode, setMode] = useState<'walking' | 'wheelchair'>('walking');
   const [filter, setFilter] = useState<'safest' | 'no-stairs' | 'recommended'>('safest');
   const [fromLocationText, setFromLocationText] = useState('현재 위치');
@@ -11,6 +26,7 @@ const FindRoute: React.FC = () => {
   const [fromLocation, setFromLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [toLocation, setToLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
+  const [isLoadingSavedRoute, setIsLoadingSavedRoute] = useState(false);
 
   const handleFromLocationSelect = (location: { name: string; lat: number; lng: number }) => {
     setFromLocationText(location.name);
@@ -26,6 +42,72 @@ const FindRoute: React.FC = () => {
     setRouteInfo(route);
   };
 
+  // 저장된 경로 로드
+  useEffect(() => {
+    if (!savedRoute) {
+      return;
+    }
+
+    const loadSavedRoute = async () => {
+      setIsLoadingSavedRoute(true);
+
+      try {
+        // 출발지/도착지 텍스트 설정
+        setFromLocationText(savedRoute.start);
+        setToLocationText(savedRoute.end);
+
+        // 모드/필터 설정 (있는 경우)
+        if (savedRoute.mode) {
+          setMode(savedRoute.mode);
+        }
+        if (savedRoute.filter) {
+          setFilter(savedRoute.filter);
+        }
+
+        // 좌표가 이미 있는 경우
+        if (savedRoute.startLocation && savedRoute.endLocation) {
+          setFromLocation(savedRoute.startLocation);
+          setToLocation(savedRoute.endLocation);
+          setIsLoadingSavedRoute(false);
+          onRouteLoaded?.();
+          return;
+        }
+
+        // 좌표가 없는 경우 주소로 검색
+        const [startResults, endResults] = await Promise.all([
+          geocode(savedRoute.start),
+          geocode(savedRoute.end)
+        ]);
+
+        if (startResults && startResults.length > 0) {
+          const startLoc = startResults[0];
+          setFromLocation({
+            lat: startLoc.lat,
+            lng: startLoc.lng,
+            name: startLoc.name || savedRoute.start
+          });
+        }
+
+        if (endResults && endResults.length > 0) {
+          const endLoc = endResults[0];
+          setToLocation({
+            lat: endLoc.lat,
+            lng: endLoc.lng,
+            name: endLoc.name || savedRoute.end
+          });
+        }
+
+        onRouteLoaded?.();
+      } catch (error) {
+        console.error('저장된 경로 로드 실패:', error);
+      } finally {
+        setIsLoadingSavedRoute(false);
+      }
+    };
+
+    loadSavedRoute();
+  }, [savedRoute, onRouteLoaded]);
+
   return (
     <div className="flex flex-1 w-full h-full bg-pale-blue overflow-hidden min-h-0">
       {/* Left Panel - Route Finder */}
@@ -34,6 +116,13 @@ const FindRoute: React.FC = () => {
         {/* Find Route Section */}
         <div className="p-6 flex-1" style={{ overflow: 'visible' }}>
           <h2 className="text-2xl font-bold text-gray-900 mb-6">길찾기</h2>
+
+          {/* 저장된 경로 로딩 중 */}
+          {isLoadingSavedRoute && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">저장된 경로를 불러오는 중...</p>
+            </div>
+          )}
 
           {/* Mode Selection */}
           <div className="mb-6">
