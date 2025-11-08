@@ -27,14 +27,10 @@ const Header: React.FC<HeaderProps> = ({ currentPage = 'home', onPageChange }) =
     };
 
     checkLoginStatus();
-    // 로그인 상태 변경을 감지하기 위해 주기적으로 확인
-    const interval = setInterval(checkLoginStatus, 1000);
-
     // storage 이벤트 리스너 추가 (다른 탭에서 로그인/로그아웃 시)
     window.addEventListener('storage', checkLoginStatus);
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener('storage', checkLoginStatus);
     };
   }, []);
