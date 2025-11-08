@@ -47,8 +47,6 @@ const Header: React.FC<HeaderProps> = ({ currentPage = 'home', onPageChange }) =
       if (onPageChange) {
         onPageChange('home');
       }
-      // 페이지 새로고침하여 상태 업데이트
-      window.location.reload();
     } catch (error) {
       console.error('로그아웃 실패:', error);
     }
