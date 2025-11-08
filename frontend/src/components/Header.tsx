@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { getToken, logout as logoutService } from '../services/authService';
+import { getEmailFromToken } from '../utils/helpers';
 
 type PageType = 'home' | 'about' | 'auth' | 'saved' | 'find-route' | 'profile';
 
@@ -8,6 +10,50 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ currentPage = 'home', onPageChange }) => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkLoginStatus = () => {
+      const token = getToken();
+      if (token) {
+        setIsLoggedIn(true);
+        const email = getEmailFromToken(token);
+        setUserEmail(email);
+      } else {
+        setIsLoggedIn(false);
+        setUserEmail(null);
+      }
+    };
+
+    checkLoginStatus();
+    // 로그인 상태 변경을 감지하기 위해 주기적으로 확인
+    const interval = setInterval(checkLoginStatus, 1000);
+
+    // storage 이벤트 리스너 추가 (다른 탭에서 로그인/로그아웃 시)
+    window.addEventListener('storage', checkLoginStatus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', checkLoginStatus);
+    };
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await logoutService();
+      setIsLoggedIn(false);
+      setUserEmail(null);
+      if (onPageChange) {
+        onPageChange('home');
+      }
+      // 페이지 새로고침하여 상태 업데이트
+      window.location.reload();
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+    }
+  };
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -51,12 +97,26 @@ const Header: React.FC<HeaderProps> = ({ currentPage = 'home', onPageChange }) =
           >
             저장된 경로
           </button>
-          <button
-            onClick={() => onPageChange?.('auth')}
-            className="px-4 py-2 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors"
-          >
-            로그인
-          </button>
+          {isLoggedIn ? (
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-medium-gray">
+                {userEmail ? `${userEmail}님` : '로그인됨'}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors"
+              >
+                로그아웃
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => onPageChange?.('auth')}
+              className="px-4 py-2 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors"
+            >
+              로그인
+            </button>
+          )}
         </nav>
       </div>
     </header>
