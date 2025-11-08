@@ -82,6 +82,8 @@ export const login = async (data: LoginRequest): Promise<LoginResponse> => {
   // 토큰 저장
   if (result.access_token) {
     saveToken(result.access_token);
+    // 인증 상태 변경 이벤트 발생 (같은 탭에서 로그인 시)
+    window.dispatchEvent(new Event('authChange'));
   }
   return result;
 };
@@ -98,6 +100,8 @@ export const logout = async (): Promise<void> => {
   } finally {
     // 클라이언트 측 토큰 삭제
     removeToken();
+    // 인증 상태 변경 이벤트 발생 (같은 탭에서 로그아웃 시)
+    window.dispatchEvent(new Event('authChange'));
   }
 };
 

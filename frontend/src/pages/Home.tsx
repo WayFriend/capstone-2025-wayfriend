@@ -1,14 +1,67 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import RevealElement from '../components/RevealElement';
 import Footer from '../components/Footer';
+import { useAuth } from '../contexts/AuthContext';
 import heroImage from '../images/main.png';
 import step1Image from '../images/step1.png';
 import step2Image from '../images/step2.png';
 import step3Image from '../images/step3.png';
 
 const Home: React.FC = () => {
+  const { isLoggedIn, userEmail } = useAuth();
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
+  const prevLoggedInRef = useRef(false);
+
+  useEffect(() => {
+    // 로그인 상태가 false에서 true로 변경되었을 때만 메시지 표시
+    if (!prevLoggedInRef.current && isLoggedIn) {
+      setShowWelcomeMessage(true);
+    }
+    prevLoggedInRef.current = isLoggedIn;
+
+    // 로그아웃 시 메시지 숨기기
+    if (!isLoggedIn) {
+      setShowWelcomeMessage(false);
+    }
+  }, [isLoggedIn]);
+
   return (
     <div className="min-h-screen flex flex-col bg-white font-sans text-dark-gray">
+      {/* 로그인 환영 메시지 */}
+      {isLoggedIn && showWelcomeMessage && (
+        <div className="bg-brand-blue text-white py-4 px-6 relative">
+          <div className="max-w-7xl mx-auto flex items-center justify-center">
+            <p className="text-lg font-medium">
+              {userEmail ? (
+                <>
+                  환영합니다, <span className="font-bold">{userEmail}</span>님! 로그인되었습니다.
+                </>
+              ) : (
+                '로그인되었습니다.'
+              )}
+            </p>
+            <button
+              onClick={() => setShowWelcomeMessage(false)}
+              className="ml-4 text-white hover:text-gray-200 transition-colors"
+              aria-label="메시지 닫기"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <section className="hero-bg">
         <div className="w-full max-w-none px-4 sm:px-6 lg:px-8 py-20 md:py-32 grid md:grid-cols-2 gap-8 md:gap-12 items-center">

@@ -45,3 +45,24 @@ export const debounce = <T extends (...args: any[]) => any>(
     timeout = setTimeout(() => func(...args), wait);
   };
 };
+
+/**
+ * JWT 토큰에서 사용자 이메일 추출
+ */
+export const getEmailFromToken = (token: string): string | null => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const payload = JSON.parse(jsonPayload);
+    return payload.sub || null;
+  } catch (error) {
+    console.error('토큰 디코딩 실패:', error);
+    return null;
+  }
+};

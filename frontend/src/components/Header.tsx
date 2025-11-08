@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 type PageType = 'home' | 'about' | 'auth' | 'saved' | 'find-route' | 'profile';
 
@@ -8,6 +9,15 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ currentPage = 'home', onPageChange }) => {
+  const { isLoggedIn, userEmail, handleLogout } = useAuth();
+
+  const handleLogoutClick = async () => {
+    await handleLogout();
+    if (onPageChange) {
+      onPageChange('home');
+    }
+  };
+
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4 shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -51,12 +61,26 @@ const Header: React.FC<HeaderProps> = ({ currentPage = 'home', onPageChange }) =
           >
             저장된 경로
           </button>
-          <button
-            onClick={() => onPageChange?.('auth')}
-            className="px-4 py-2 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors"
-          >
-            로그인
-          </button>
+          {isLoggedIn ? (
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-medium-gray">
+                {userEmail ? `${userEmail}님` : '로그인됨'}
+              </span>
+              <button
+                onClick={handleLogoutClick}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors"
+              >
+                로그아웃
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => onPageChange?.('auth')}
+              className="px-4 py-2 bg-brand-blue text-white rounded-lg text-sm font-medium hover:bg-opacity-90 transition-colors"
+            >
+              로그인
+            </button>
+          )}
         </nav>
       </div>
     </header>
