@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { getToken, logout as logoutService } from '../services/authService';
-import { getEmailFromToken } from '../utils/helpers';
+import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 type PageType = 'home' | 'about' | 'auth' | 'saved' | 'find-route' | 'profile';
 
@@ -10,41 +9,12 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ currentPage = 'home', onPageChange }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const { isLoggedIn, userEmail, handleLogout } = useAuth();
 
-  useEffect(() => {
-    const checkLoginStatus = () => {
-      const token = getToken();
-      if (token) {
-        setIsLoggedIn(true);
-        const email = getEmailFromToken(token);
-        setUserEmail(email);
-      } else {
-        setIsLoggedIn(false);
-        setUserEmail(null);
-      }
-    };
-
-    checkLoginStatus();
-    // storage 이벤트 리스너 추가 (다른 탭에서 로그인/로그아웃 시)
-    window.addEventListener('storage', checkLoginStatus);
-
-    return () => {
-      window.removeEventListener('storage', checkLoginStatus);
-    };
-  }, []);
-
-  const handleLogout = async () => {
-    try {
-      await logoutService();
-      setIsLoggedIn(false);
-      setUserEmail(null);
-      if (onPageChange) {
-        onPageChange('home');
-      }
-    } catch (error) {
-      console.error('로그아웃 실패:', error);
+  const handleLogoutClick = async () => {
+    await handleLogout();
+    if (onPageChange) {
+      onPageChange('home');
     }
   };
 
@@ -97,7 +67,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage = 'home', onPageChange }) =
                 {userEmail ? `${userEmail}님` : '로그인됨'}
               </span>
               <button
-                onClick={handleLogout}
+                onClick={handleLogoutClick}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors"
               >
                 로그아웃

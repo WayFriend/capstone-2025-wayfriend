@@ -1,54 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import RevealElement from '../components/RevealElement';
 import Footer from '../components/Footer';
-import { getToken } from '../services/authService';
-import { getEmailFromToken } from '../utils/helpers';
+import { useAuth } from '../contexts/AuthContext';
 import heroImage from '../images/main.png';
 import step1Image from '../images/step1.png';
 import step2Image from '../images/step2.png';
 import step3Image from '../images/step3.png';
 
 const Home: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const { isLoggedIn, userEmail } = useAuth();
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
   const prevLoggedInRef = useRef(false);
 
   useEffect(() => {
-    const checkLoginStatus = () => {
-      const token = getToken();
-      const currentlyLoggedIn = !!token;
+    // 로그인 상태가 false에서 true로 변경되었을 때만 메시지 표시
+    if (!prevLoggedInRef.current && isLoggedIn) {
+      setShowWelcomeMessage(true);
+    }
+    prevLoggedInRef.current = isLoggedIn;
 
-      if (currentlyLoggedIn) {
-        const email = getEmailFromToken(token);
-        setUserEmail(email);
-
-        // 로그인 상태가 false에서 true로 변경되었을 때만 메시지 표시
-        if (!prevLoggedInRef.current && currentlyLoggedIn) {
-          setShowWelcomeMessage(true);
-        }
-        setIsLoggedIn(true);
-        prevLoggedInRef.current = true;
-      } else {
-        setIsLoggedIn(false);
-        setUserEmail(null);
-        prevLoggedInRef.current = false;
-        setShowWelcomeMessage(false);
-      }
-    };
-
-    checkLoginStatus();
-    // 로그인 상태 변경을 감지하기 위해 주기적으로 확인
-    const interval = setInterval(checkLoginStatus, 1000);
-
-    // storage 이벤트 리스너 추가 (다른 탭에서 로그인/로그아웃 시)
-    window.addEventListener('storage', checkLoginStatus);
-
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('storage', checkLoginStatus);
-    };
-  }, []);
+    // 로그아웃 시 메시지 숨기기
+    if (!isLoggedIn) {
+      setShowWelcomeMessage(false);
+    }
+  }, [isLoggedIn]);
 
   return (
     <div className="min-h-screen flex flex-col bg-white font-sans text-dark-gray">

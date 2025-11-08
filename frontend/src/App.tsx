@@ -5,6 +5,7 @@ import About from './pages/About';
 import Auth from './pages/Auth';
 import SavedRoutes from './pages/SavedRoutes';
 import FindRoute from './pages/FindRoute';
+import { AuthProvider } from './contexts/AuthContext';
 import './styles/App.css';
 
 // 저장된 경로 정보 타입
@@ -46,14 +47,16 @@ function App() {
   };
 
   return (
-    <div className="relative flex w-full h-screen flex-col group/design-root overflow-x-hidden">
-      <div className="layout-container flex h-full flex-col w-full">
-        <Header currentPage={currentPage} onPageChange={setCurrentPage} />
-        <main className="flex flex-1 w-full min-h-0">
-          {renderPage()}
-        </main>
+    <AuthProvider>
+      <div className="relative flex w-full h-screen flex-col group/design-root overflow-x-hidden">
+        <div className="layout-container flex h-full flex-col w-full">
+          <Header currentPage={currentPage} onPageChange={setCurrentPage} />
+          <main className="flex flex-1 w-full min-h-0">
+            {renderPage()}
+          </main>
+        </div>
       </div>
-    </div>
+    </AuthProvider>
   );
 }
 
