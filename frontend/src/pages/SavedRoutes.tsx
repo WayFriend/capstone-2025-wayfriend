@@ -29,42 +29,42 @@ interface SavedRoutesProps {
 const MOCK_ROUTES: SavedRoute[] = [
   {
     id: 1,
-    title: "Route to Central Park",
-    start: "123 Elm Street",
-    end: "456 Oak Avenue",
-    savedDate: "July 15, 2024",
+    title: "서울역에서 명동까지",
+    start: "서울특별시 중구 한강대로 405",
+    end: "서울특별시 중구 명동길 26",
+    savedDate: "2024년 7월 15일",
     imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuBQoV1nh8ivongGNWSWm7Q0JfUn6U0MCybDU68qUuNl175DUzru26WptsF8l4IryBgSlqTI1OaXKsMOKg1NHwHsCuL0oGxtC8ONd7z3CIK99-lWa47ekBqeIOeAeGwLZwsVfK77fM3s0TBb1O3-u3wJlPUEG9LgyFZgxJprb7OYdmo8PpIVLm3kR1fvgwYP3Oa4V_H-9-lSbLkyFoB9210SkFc9tnLy8wemVQvrx8peHpgMX6r0DUmGcv6QHzMISzwCjDGecdYPuy0"
   },
   {
     id: 2,
-    title: "Route to the Library",
-    start: "789 Pine Lane",
-    end: "101 Maple Drive",
-    savedDate: "June 22, 2024",
+    title: "강남역에서 코엑스까지",
+    start: "서울특별시 강남구 강남대로 396",
+    end: "서울특별시 강남구 영동대로 513",
+    savedDate: "2024년 6월 22일",
     imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuCauqO13P0wmlGl1Gmv_5VsR0IhNisBl5c2TgPrkui103K9S6My9XsHsqe6_tro5T7DuGOGND65GvVbwW97K7VivKEgTDUotZEjJQo5MKPwIXpKvRdrKF8f0tMhX_03AOpxQecmLOhN1ERufGjwS99IbwTY3egZq96BaF1iGEylFIeQSTHACjWlZ5-RtGtfIClyLUf0QlhHPbJEDKL_DlMSe_nqMR38exykuCsZ-PbCQdet1qUVpd0MKR-XNbIUQOlgZruS4lmG1dk"
   },
   {
     id: 3,
-    title: "Route to the Museum",
-    start: "222 Cedar Road",
-    end: "333 Birch Court",
-    savedDate: "May 10, 2024",
+    title: "홍대입구역에서 이대앞까지",
+    start: "서울특별시 마포구 양화로 188",
+    end: "서울특별시 마포구 이화여대길 52",
+    savedDate: "2024년 5월 10일",
     imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuDLJPsTxWOjXpCoQpetcXDLJN88PmHRjAKJYTGEWu5yIJ0LWOwHXuoS6bLGUpol1TkPxplRewTolAWfKi9svJxff_FcJw1g7TNAf0YWea2zC9zdC92Ss9UujMn1l-4tSYBV3vv5_B4T9lgoeYH3nMLbuUqUwbZHYPxZsD1LjF6ZNfSJlaI6TJcpVtu0ptxrPkmARyvVHHWwKXvObatNiewaFQFml73dGk4xCISx8GMv_WcjpyvNBQRDLs08VuY3d_9WrJEh0Wv47hw"
   },
   {
     id: 4,
-    title: "Route to the Shopping Mall",
-    start: "444 Willow Place",
-    end: "555 Aspen Way",
-    savedDate: "April 5, 2024",
+    title: "잠실역에서 롯데월드타워까지",
+    start: "서울특별시 송파구 올림픽로 240",
+    end: "서울특별시 송파구 올림픽로 300",
+    savedDate: "2024년 4월 5일",
     imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuCnvgrwOQe1l0E0aR4aULQDD83suxYE9bcQPxZv4OoWBPpr1lmInpz-GxNdkDYg7qja6Si0WX97HllnZP6vKrAByirus5O1ZZLoTkL6YPZ4oGkTXa-sKI9nkHdeVLoamLXGjj1YyfV_tfFA32NIhP8UEO-ina_CaKd9H5Umc2T6AvMUMY9T-RrRLdG7JujC_4wdvFG7ANWPBBnJ5lTfc9if-hkOhn1MxNZmmYUdg2Hg17GAhCTbV72SucO7YIyNTW22YnRWz5E-jPw"
   },
   {
     id: 5,
-    title: "Route to the Community Center",
-    start: "666 Spruce Street",
-    end: "777 Fir Avenue",
-    savedDate: "March 1, 2024",
+    title: "을지로입구역에서 동대문디자인플라자까지",
+    start: "서울특별시 중구 을지로 281",
+    end: "서울특별시 중구 을지로6가 281",
+    savedDate: "2024년 3월 1일",
     imageUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuCnsdHIDxpNmBtj3mEkkxbm14oumelQ2f3kn0HIs76rpDHeK0J2MdIkjajswYK08L9h3wNZSYE8Z2--x-mVkr2c2_iCaQe6kZ2zyt0jmCluEtpNpeOD_pMJP9w0uU7kRdCUPVPVTUjpo-bk1W8Z_v6ytLqSHJHfCAlMwbUDtRfZXOXsjKPgwnaZg2qVVcf0B3O29GFEffKqw6VmQuSSRlxEJGtG_AiqeZtr72-YijBAcN_p9AoHM-R245A5E3zPjc91ZBHR_ZjDVkk"
   }
 ];
@@ -187,7 +187,7 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
     return (
       <div className="w-full flex items-start justify-center px-4 py-8">
         <div className="w-full max-w-4xl">
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-8">Saved Routes</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-8">저장된 경로</h2>
           <div className="text-center py-12">
             <p className="text-gray-500">저장된 경로를 불러오는 중...</p>
           </div>
@@ -200,7 +200,7 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
     return (
       <div className="w-full flex items-start justify-center px-4 py-8">
         <div className="w-full max-w-4xl">
-          <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-8">Saved Routes</h2>
+          <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-8">저장된 경로</h2>
           <div className="text-center py-12">
             <p className="text-red-500 mb-4">{error}</p>
             <button
@@ -218,7 +218,7 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
   return (
     <div className="w-full flex items-start justify-center px-4 py-8">
       <div className="w-full max-w-4xl">
-        <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-8">Saved Routes</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-gray-900 mb-8">저장된 경로</h2>
       {savedRoutes.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">저장된 경로가 없습니다.</p>
@@ -244,15 +244,15 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
             </div>
             <div className="flex-1">
               <p className="text-lg font-semibold text-gray-900">{route.title}</p>
-              <p className="text-sm text-gray-500 mt-1">Start: {route.start}, End: {route.end}</p>
-              <p className="text-xs text-gray-400 mt-2">Saved on: {route.savedDate}</p>
+              <p className="text-sm text-gray-500 mt-1">출발: {route.start}, 도착: {route.end}</p>
+              <p className="text-xs text-gray-400 mt-2">저장일: {route.savedDate}</p>
             </div>
             <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
               <button
                 onClick={() => setSelectedRoute(route)}
                 className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
               >
-                View Details
+                상세 보기
               </button>
               <button
                 onClick={() => handleDeleteRoute(route.id)}
