@@ -22,6 +22,7 @@ interface RouteCalculatorProps {
   endLocation: { lat: number; lng: number; name: string } | null;
   mode: 'walking' | 'wheelchair';
   filter: 'safest' | 'no-stairs' | 'recommended';
+  avoidObstacles?: string[];
   onRouteCalculated: (route: RouteInfo | null) => void;
 }
 
@@ -30,18 +31,18 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({
   endLocation,
   mode,
   filter,
+  avoidObstacles = [],
   onRouteCalculated
 }) => {
   const [isCalculating, setIsCalculating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 출발지나 도착지가 변경되면 경로 정보 초기화
   useEffect(() => {
-    if (startLocation && endLocation) {
-      calculateRoute();
-    } else {
+    if (!startLocation || !endLocation) {
       onRouteCalculated(null);
     }
-  }, [startLocation, endLocation, mode, filter]);
+  }, [startLocation, endLocation]);
 
   const calculateRoute = async () => {
     if (!startLocation || !endLocation) return;
@@ -50,7 +51,7 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({
     setError(null);
 
     try {
-      console.log('🗺️ 경로 계산 시작:', { startLocation, endLocation, mode, filter });
+      console.log('🗺️ 경로 계산 시작:', { startLocation, endLocation, mode, filter, avoidObstacles });
 
       // 백엔드 API 호출
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -71,7 +72,8 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({
             name: endLocation.name
           },
           mode,
-          filter
+          filter,
+          avoidObstacles
         })
       });
 
@@ -157,17 +159,37 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({
 
 
 
+  const canCalculate = startLocation && endLocation && !isCalculating;
+
   return (
     <div className="mb-4">
-      {isCalculating && (
-        <div className="flex items-center justify-center py-4">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mr-2"></div>
-          <span className="text-sm text-gray-600">경로 계산 중...</span>
-        </div>
-      )}
+      {/* 경로 찾기 버튼 */}
+      <button
+        onClick={calculateRoute}
+        disabled={!canCalculate}
+        className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-colors flex items-center justify-center gap-2 ${
+          canCalculate
+            ? 'bg-brand-blue hover:bg-blue-700 active:bg-blue-800'
+            : 'bg-gray-300 cursor-not-allowed'
+        }`}
+      >
+        {isCalculating ? (
+          <>
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+            <span>경로 계산 중...</span>
+          </>
+        ) : (
+          <>
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+            <span>경로 찾기</span>
+          </>
+        )}
+      </button>
 
       {error && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+        <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
           <div className="flex items-center">
             <svg className="w-4 h-4 text-yellow-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
