@@ -12,6 +12,8 @@ interface NaverMapProps {
   height?: string;
   center?: { lat: number; lng: number };
   zoom?: number;
+  startLocation?: { lat: number; lng: number; name: string } | null;
+  endLocation?: { lat: number; lng: number; name: string } | null;
   onMapLoad?: (map: any) => void;
   onMapClick?: (lat: number, lng: number) => void;
   onMapIdle?: (center: { lat: number; lng: number }, zoom: number) => void;
@@ -22,6 +24,8 @@ const NaverMap: React.FC<NaverMapProps> = ({
   height = '100%',
   center = { lat: 37.5665, lng: 126.9780 },
   zoom = 15,
+  startLocation,
+  endLocation,
   onMapLoad,
   onMapClick,
   onMapIdle,
@@ -29,6 +33,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const isInitializedRef = useRef(false);
+  const markersRef = useRef<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [naverClientId, setNaverClientId] = useState<string | null>(null);
@@ -360,7 +365,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
 
                     // 도메인 설정 안내 메시지
                     const currentOrigin = `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
-                    
+
                     // 개발자용 상세 정보는 콘솔에만 출력
                     console.error('[ERROR] isReady가 false인 상태에서 타임아웃');
                     console.error('[ERROR] 현재 접속 정보:', currentOrigin);
@@ -415,6 +420,131 @@ const NaverMap: React.FC<NaverMapProps> = ({
       }
     }
   }, [center, zoom]);
+
+  // 마커 업데이트
+  useEffect(() => {
+    if (!isInitializedRef.current || !mapInstanceRef.current || !window.naver || !window.naver.maps) {
+      return;
+    }
+
+    // 기존 마커 제거
+    markersRef.current.forEach(marker => {
+      marker.setMap(null);
+    });
+    markersRef.current = [];
+
+    // 출발지 마커 추가
+    if (startLocation) {
+      const startMarker = new window.naver.maps.Marker({
+        position: new window.naver.maps.LatLng(startLocation.lat, startLocation.lng),
+        map: mapInstanceRef.current,
+        icon: {
+          content: `
+            <div style="
+              background-color: #3A86FF;
+              width: 32px;
+              height: 32px;
+              border-radius: 50% 50% 50% 0;
+              transform: rotate(-45deg);
+              border: 3px solid white;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            ">
+              <div style="
+                transform: rotate(45deg);
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+              ">출</div>
+            </div>
+          `,
+          anchor: new window.naver.maps.Point(16, 16)
+        },
+        title: startLocation.name || '출발지'
+      });
+      markersRef.current.push(startMarker);
+
+      // 출발지 정보창
+      if (startLocation.name) {
+        const startInfoWindow = new window.naver.maps.InfoWindow({
+          content: `<div style="padding: 8px; font-size: 14px; font-weight: bold; color: #3A86FF;">출발지: ${startLocation.name}</div>`
+        });
+
+        window.naver.maps.Event.addListener(startMarker, 'click', () => {
+          startInfoWindow.open(mapInstanceRef.current, startMarker);
+        });
+      }
+    }
+
+    // 도착지 마커 추가
+    if (endLocation) {
+      const endMarker = new window.naver.maps.Marker({
+        position: new window.naver.maps.LatLng(endLocation.lat, endLocation.lng),
+        map: mapInstanceRef.current,
+        icon: {
+          content: `
+            <div style="
+              background-color: #EF4444;
+              width: 32px;
+              height: 32px;
+              border-radius: 50% 50% 50% 0;
+              transform: rotate(-45deg);
+              border: 3px solid white;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+            ">
+              <div style="
+                transform: rotate(45deg);
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+              ">도</div>
+            </div>
+          `,
+          anchor: new window.naver.maps.Point(16, 16)
+        },
+        title: endLocation.name || '도착지'
+      });
+      markersRef.current.push(endMarker);
+
+      // 도착지 정보창
+      if (endLocation.name) {
+        const endInfoWindow = new window.naver.maps.InfoWindow({
+          content: `<div style="padding: 8px; font-size: 14px; font-weight: bold; color: #EF4444;">도착지: ${endLocation.name}</div>`
+        });
+
+        window.naver.maps.Event.addListener(endMarker, 'click', () => {
+          endInfoWindow.open(mapInstanceRef.current, endMarker);
+        });
+      }
+    }
+
+    // 출발지와 도착지가 모두 있으면 지도 범위 조정
+    if (startLocation && endLocation) {
+      const bounds = new window.naver.maps.LatLngBounds();
+      bounds.extend(new window.naver.maps.LatLng(startLocation.lat, startLocation.lng));
+      bounds.extend(new window.naver.maps.LatLng(endLocation.lat, endLocation.lng));
+      mapInstanceRef.current.fitBounds(bounds, { padding: 50 });
+    } else if (startLocation) {
+      mapInstanceRef.current.setCenter(new window.naver.maps.LatLng(startLocation.lat, startLocation.lng));
+      mapInstanceRef.current.setZoom(16);
+    } else if (endLocation) {
+      mapInstanceRef.current.setCenter(new window.naver.maps.LatLng(endLocation.lat, endLocation.lng));
+      mapInstanceRef.current.setZoom(16);
+    }
+
+    return () => {
+      // 컴포넌트 언마운트 시 마커 제거
+      markersRef.current.forEach(marker => {
+        marker.setMap(null);
+      });
+      markersRef.current = [];
+    };
+  }, [startLocation, endLocation]);
 
   // 윈도우 리사이즈 시 지도 리사이즈
   useEffect(() => {

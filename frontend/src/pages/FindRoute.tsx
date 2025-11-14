@@ -18,15 +18,20 @@ interface FindRouteProps {
   onRouteLoaded?: () => void;
 }
 
+type ObstacleType = 'crosswalk' | 'curb' | 'bollard' | 'stairs' | 'ramp';
+
 const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
   const [mode, setMode] = useState<'walking' | 'wheelchair'>('walking');
-  const [filter, setFilter] = useState<'safest' | 'no-stairs' | 'recommended'>('safest');
+  // 경로 필터 (주석 처리 - 장애물 선택 기능으로 대체)
+  // const [filter, setFilter] = useState<'safest' | 'no-stairs' | 'recommended'>('safest');
+  const filter: 'safest' | 'no-stairs' | 'recommended' = 'safest'; // 기본값으로 고정
   const [fromLocationText, setFromLocationText] = useState('현재 위치');
   const [toLocationText, setToLocationText] = useState('서울시청');
   const [fromLocation, setFromLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [toLocation, setToLocation] = useState<{ lat: number; lng: number; name: string } | null>(null);
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [isLoadingSavedRoute, setIsLoadingSavedRoute] = useState(false);
+  const [selectedObstacles, setSelectedObstacles] = useState<Set<ObstacleType>>(new Set());
 
   const handleFromLocationSelect = (location: { name: string; lat: number; lng: number }) => {
     setFromLocationText(location.name);
@@ -40,6 +45,26 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
 
   const handleRouteCalculated = (route: RouteInfo | null) => {
     setRouteInfo(route);
+  };
+
+  const toggleObstacle = (obstacle: ObstacleType) => {
+    setSelectedObstacles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(obstacle)) {
+        newSet.delete(obstacle);
+      } else {
+        newSet.add(obstacle);
+      }
+      return newSet;
+    });
+  };
+
+  const obstacleLabels: Record<ObstacleType, string> = {
+    crosswalk: '횡단보도',
+    curb: '턱',
+    bollard: '볼라드',
+    stairs: '계단',
+    ramp: '경사로'
   };
 
   // 저장된 경로 로드
@@ -60,9 +85,10 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
         if (savedRoute.mode) {
           setMode(savedRoute.mode);
         }
-        if (savedRoute.filter) {
-          setFilter(savedRoute.filter);
-        }
+        // 필터 설정 (주석 처리)
+        // if (savedRoute.filter) {
+        //   setFilter(savedRoute.filter);
+        // }
 
         // 좌표가 이미 있는 경우
         if (savedRoute.startLocation && savedRoute.endLocation) {
@@ -178,17 +204,8 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
             />
           </div>
 
-          {/* Route Calculator */}
-          <RouteCalculator
-            startLocation={fromLocation}
-            endLocation={toLocation}
-            mode={mode}
-            filter={filter}
-            onRouteCalculated={handleRouteCalculated}
-          />
-
-          {/* Route Filters */}
-          <div className="mb-6">
+          {/* Route Filters - 주석 처리 (장애물 선택 기능으로 대체) */}
+          {/* <div className="mb-6">
             <div className="flex gap-2">
               <button
                 onClick={() => setFilter('safest')}
@@ -230,7 +247,48 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
                 추천 경로
               </button>
             </div>
+          </div> */}
+
+          {/* Obstacle Selection */}
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">회피할 장애물 선택</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {(Object.keys(obstacleLabels) as ObstacleType[]).map((obstacle) => (
+                <button
+                  key={obstacle}
+                  onClick={() => toggleObstacle(obstacle)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedObstacles.has(obstacle)
+                      ? 'bg-brand-blue text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                    selectedObstacles.has(obstacle)
+                      ? 'bg-white border-white'
+                      : 'border-gray-400'
+                  }`}>
+                    {selectedObstacles.has(obstacle) && (
+                      <svg className="w-3 h-3 text-brand-blue" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                  {obstacleLabels[obstacle]}
+                </button>
+              ))}
+            </div>
           </div>
+
+          {/* Route Calculator */}
+          <RouteCalculator
+            startLocation={fromLocation}
+            endLocation={toLocation}
+            mode={mode}
+            filter={filter}
+            avoidObstacles={Array.from(selectedObstacles)}
+            onRouteCalculated={handleRouteCalculated}
+          />
 
           {/* Route Summary */}
           {routeInfo && (
@@ -305,9 +363,20 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
                   lat: (routeInfo.startLocation.lat + routeInfo.endLocation.lat) / 2,
                   lng: (routeInfo.startLocation.lng + routeInfo.endLocation.lng) / 2
                 }
+              : fromLocation && toLocation
+              ? {
+                  lat: (fromLocation.lat + toLocation.lat) / 2,
+                  lng: (fromLocation.lng + toLocation.lng) / 2
+                }
+              : fromLocation
+              ? { lat: fromLocation.lat, lng: fromLocation.lng }
+              : toLocation
+              ? { lat: toLocation.lat, lng: toLocation.lng }
               : { lat: 37.5665, lng: 126.9780 }
           }
-          zoom={routeInfo ? 14 : 15}
+          zoom={routeInfo ? 14 : fromLocation && toLocation ? 14 : 15}
+          startLocation={fromLocation}
+          endLocation={toLocation}
           onMapLoad={(map) => {
             console.log('네이버 지도가 로드되었습니다:', map);
           }}
