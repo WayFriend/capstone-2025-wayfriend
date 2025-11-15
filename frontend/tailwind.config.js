@@ -8,9 +8,14 @@ export default {
     extend: {
       fontFamily: {
         'inter': ['Inter', 'Noto Sans', 'sans-serif'],
+        'sans': ['Inter', 'Noto Sans', 'sans-serif'],
       },
       colors: {
         primary: '#137fec',
+        'brand-blue': '#3A86FF',
+        'medium-gray': '#6B7280',
+        'dark-gray': '#111827',
+        'pale-blue': '#F0F5FF',
       },
     },
   },

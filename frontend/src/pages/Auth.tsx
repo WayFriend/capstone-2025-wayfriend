@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
+import { signup, login } from '../services/authService';
 
 const Auth: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -14,19 +18,57 @@ const Auth: React.FC = () => {
       ...prev,
       [name]: value
     }));
+    // 입력 시 에러 메시지 초기화
+    if (error) setError(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    // 비밀번호 확인 검증
     if (!isLogin && formData.password !== formData.confirmPassword) {
-      alert('비밀번호가 일치하지 않습니다.');
+      setError('비밀번호가 일치하지 않습니다.');
       return;
     }
 
-    if (isLogin) {
-      console.log('로그인:', { email: formData.email, password: formData.password });
-    } else {
-      console.log('회원가입:', { email: formData.email, password: formData.password });
+    setIsLoading(true);
+
+    try {
+      if (isLogin) {
+        // 로그인
+        await login({
+          email: formData.email,
+          password: formData.password,
+        });
+        setSuccess('로그인 성공! 환영합니다.');
+        // 로그인 성공 후 홈으로 이동하거나 상태 업데이트
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+      } else {
+        // 회원가입
+        await signup({
+          email: formData.email,
+          password: formData.password,
+        });
+        setSuccess('회원가입 성공! 로그인 페이지로 이동합니다.');
+        // 회원가입 성공 후 로그인 모드로 전환
+        setTimeout(() => {
+          setIsLogin(true);
+          setFormData({
+            email: formData.email,
+            password: '',
+            confirmPassword: '',
+          });
+          setSuccess(null);
+        }, 2000);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -51,6 +93,20 @@ const Auth: React.FC = () => {
             Accessible routes for everyone
           </p>
         </header>
+
+        {/* 에러 메시지 */}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+
+        {/* 성공 메시지 */}
+        {success && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+            <p className="text-sm text-green-600">{success}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
@@ -106,13 +162,14 @@ const Auth: React.FC = () => {
           <div className="flex gap-4">
             <button
               type="submit"
+              disabled={isLoading}
               className={`flex-1 py-3 px-4 rounded-md text-sm font-semibold shadow-sm transition-colors ${
                 isLogin
-                  ? 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                  : 'bg-[var(--primary-color)] text-white hover:bg-blue-700'
+                  ? 'bg-gray-200 text-gray-900 hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed'
+                  : 'bg-[var(--primary-color)] text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed'
               }`}
             >
-              {isLogin ? 'Login' : 'Register'}
+              {isLoading ? '처리 중...' : isLogin ? 'Login' : 'Register'}
             </button>
             <button
               type="button"
