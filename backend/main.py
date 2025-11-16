@@ -2,11 +2,11 @@
 
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
-from app.auth import models
-from app import database
-from app.auth import api
-from app.route import route_api
-from app.route import models as route_models
+from backend.app.auth import models
+from backend.app import database
+from backend.app.auth import api
+from backend.app.route import api as route_api
+from backend.app.route import models as route_models
 
 # FastAPI 인스턴스
 app = FastAPI()
