@@ -19,6 +19,7 @@ COPY ./backend ./backend
 # 환경 변수
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Seoul
+ENV PYTHONPATH=/app/backend
 
 # 포트 노출
 EXPOSE 8000

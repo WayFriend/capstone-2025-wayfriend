@@ -8,6 +8,7 @@ from app.auth import models
 from app.auth.utils import get_current_user
 
 router = APIRouter()
+# OPTIONS 요청은 CORSMiddleware가 자동으로 처리하므로 별도 핸들러 불필요
 
 @router.post("/signup", response_model=Message)
 def signup(user: UserCreate, db: Session = Depends(get_db)):
@@ -29,7 +30,7 @@ def delete_user(
     user = db.query(models.User).filter(models.User.id == current_user.id).first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
-    
+
     email = user.email
     db.delete(user)
     db.commit()
