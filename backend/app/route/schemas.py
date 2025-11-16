@@ -1,51 +1,73 @@
-# app/route/schemas.py
+# backend/app/route/schemas.py
 
 from pydantic import BaseModel
-from typing import List, Dict, Tuple
+from typing import List, Tuple, Optional
 
+
+# -----------------------------------------------------
+# 경로 계산 요청
+# -----------------------------------------------------
 class RouteRequest(BaseModel):
     start_lat: float
     start_lng: float
     end_lat: float
     end_lng: float
-    avoid_types: List[str] = []  # 프론트에서 ["curb", "stairs"] 식으로 전달
-    radius_m: float = 3.0
-    penalties: Dict[str, float] = {
-        "curb": 1000.0,
-        "bollard": 300.0,
-        "crosswalk": 150.0,
-        "slope": 500.0,
-        "stairs": 3000.0
-    }
+    avoid_types: List[str]
+    radius_m: float
+    penalties: dict
 
+
+# -----------------------------------------------------
+# 경로 계산 결과
+# -----------------------------------------------------
 class RouteResponse(BaseModel):
-    route: list[tuple[float, float]]
+    route: List[Tuple[float, float]]
     distance_m: float
-    risk_factors: list[str]
-    message: str | None = None
+    risk_factors: List[str]
+    message: Optional[str] = None  # 회피 실패 시 보여줄 문구
 
-# DB에 저장된 경로를 사용자에게 보여줄 때 필yo
+
+# -----------------------------------------------------
+# 사용자가 선택해서 저장할 때 사용하는 요청 모델
+# -----------------------------------------------------
+class RouteSaveRequest(BaseModel):
+    start_lat: float
+    start_lng: float
+    end_lat: float
+    end_lng: float
+    route_points: List[Tuple[float, float]]
+    distance_m: float
+    avoided: List[str]
+
+
+# -----------------------------------------------------
+# DB에서 저장된 경로 조회할 때 사용하는 응답 모델
+# -----------------------------------------------------
 class RouteStored(BaseModel):
     id: int
     start_lat: float
     start_lng: float
     end_lat: float
     end_lng: float
-    route_points: list[tuple[float, float]]
-    distance_m: float | None = None
-    avoided: str | None = None
+    route_points: List[Tuple[float, float]]
+    distance_m: Optional[float] = None
+    avoided: Optional[str] = None
     created_at: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True  # Pydantic v2 방식
 
+
+# -----------------------------------------------------
+# 장애물 조회 응답 모델
+# -----------------------------------------------------
 class ObstacleResponse(BaseModel):
     id: int
     type: str
     lat: float
     lng: float
-    confidence: float | None
+    confidence: Optional[float]
     detected_at: str
 
     class Config:
-        orm_mode = True
+        from_attributes = True
