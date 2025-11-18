@@ -63,4 +63,3 @@ def delete_route(
         return {"ok": False, "message": "해당 경로를 찾을 수 없거나 삭제 권한이 없습니다."}
 
     return {"ok": True, "message": "경로가 삭제되었습니다."}
-
