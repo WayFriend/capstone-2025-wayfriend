@@ -24,6 +24,7 @@ class RouteResponse(BaseModel):
     route: List[Tuple[float, float]]
     distance_m: float
     risk_factors: List[str]
+    avoided_final: List[str]
     message: Optional[str] = None  # 회피 실패 시 보여줄 문구
 
 

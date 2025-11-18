@@ -7,33 +7,16 @@ from app.route.models import RouteResult, Obstacle
 
 
 # ---------------------------------------------------------
-# 1) 경로 계산만 수행 (DB 저장 없음)
+# 1) 경로 계산 (DB 저장 없음)
 # ---------------------------------------------------------
 def find_path_from_request(req, db: Session, user_id: int):
-    start = (req.start_lat, req.start_lng)
-    end = (req.end_lat, req.end_lng)
-
-    # A* + 패널티 + 회피 실패 판정
-    result = astar_path_with_penalty(
-        start=start,
-        end=end,
-        db=db,
-        avoid_types=req.avoid_types,
-        radius_m=req.radius_m,
-        penalties=req.penalties,
-    )
-
-    # 사용자가 선택했을 때만 저장 → 여기서는 저장 안 함
-    return result
+    return find_best_path(req, db, user_id)
 
 
 # ---------------------------------------------------------
-# 2) 사용자가 선택한 경로만 저장하는 함수
+# 2) 사용자가 선택한 경로 저장
 # ---------------------------------------------------------
 def save_route(req, db: Session, user_id: int) -> RouteResult:
-    """
-    프론트에서 사용자가 '이 경로 저장'을 눌렀을 때 호출됨.
-    """
     route_obj = RouteResult(
         user_id=user_id,
         start_lat=req.start_lat,
@@ -52,12 +35,9 @@ def save_route(req, db: Session, user_id: int) -> RouteResult:
 
 
 # ---------------------------------------------------------
-# 3) 저장된 경로 삭제 기능
+# 3) 저장된 경로 삭제
 # ---------------------------------------------------------
 def delete_route(route_id: int, db: Session, user_id: int):
-    """
-    로그인한 사용자의 저장된 경로만 삭제 가능
-    """
     route = (
         db.query(RouteResult)
         .filter(RouteResult.id == route_id, RouteResult.user_id == user_id)
@@ -65,7 +45,7 @@ def delete_route(route_id: int, db: Session, user_id: int):
     )
 
     if not route:
-        return None  # 없는 경우 or 권한 없음
+        return None
 
     db.delete(route)
     db.commit()
@@ -76,19 +56,68 @@ def delete_route(route_id: int, db: Session, user_id: int):
 # 4) 저장된 경로 목록 조회
 # ---------------------------------------------------------
 def get_my_routes(db: Session, user_id: int):
-    """
-    로그인한 사용자의 저장된 경로 목록 반환
-    """
     return (
         db.query(RouteResult)
         .filter(RouteResult.user_id == user_id)
-        .order_by(RouteResult.created_at.desc())  # 최신 순
+        .order_by(RouteResult.created_at.desc())
         .all()
     )
 
 
 # ---------------------------------------------------------
-# 5) 장애물 전체 조회 (기존 기능)
+# 5) 장애물 전체 조회
 # ---------------------------------------------------------
 def get_all_obstacles(db: Session):
     return db.query(Obstacle).all()
+
+
+# ---------------------------------------------------------
+# 6) 최적 회피 경로 계산 (핵심 기능)
+# ---------------------------------------------------------
+def find_best_path(req, db, user_id):
+
+    current_avoid = list(req.avoid_types)
+
+    while True:
+        # 1) 경로 계산
+        res = astar_path_with_penalty(
+            start=(req.start_lat, req.start_lng),
+            end=(req.end_lat, req.end_lng),
+            db=db,
+            avoid_types=current_avoid,
+            radius_m=req.radius_m,
+            penalties=req.penalties,
+        )
+
+        failed = res["risk_factors"]
+
+        # 2) 모든 회피 성공 → 반환
+        if not failed:
+            return {
+                "route": res["route"],
+                "distance_m": res["distance_m"],
+                "risk_factors": failed,
+                "avoided_final": current_avoid
+            }
+
+        # 3) 실패한 회피 제거
+        for f in failed:
+            if f in current_avoid:
+                current_avoid.remove(f)
+
+        # 4) 더 이상 회피할 것이 없으면 → 최단거리 경로
+        if not current_avoid:
+            final = astar_path_with_penalty(
+                start=(req.start_lat, req.start_lng),
+                end=(req.end_lat, req.end_lng),
+                db=db,
+                avoid_types=[],
+                radius_m=req.radius_m,
+                penalties=req.penalties
+            )
+            return {
+                "route": final["route"],
+                "distance_m": final["distance_m"],
+                "risk_factors": [],
+                "avoided_final": []
+            }
