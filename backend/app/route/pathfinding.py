@@ -44,7 +44,7 @@ def load_graph_for_route(start: Tuple[float, float],
     ox.settings.use_cache = True
     ox.settings.log_console = False
     ox.settings.overpass_rate_limit = True
-    ox.settings.overpass_endpoint = "https://overpass-api.osm.kr/api/interpreter"
+    ox.settings.overpass_endpoint = "https://overpass-api.de/api/interpreter"
 
     # start/end 를 모두 포함하는 bounding box (약 1km 마진)
     margin_deg = 0.01  # 위도/경도 ~1.1km 정도
