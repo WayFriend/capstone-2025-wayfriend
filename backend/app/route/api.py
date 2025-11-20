@@ -5,14 +5,18 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.auth.utils import get_current_user
-
 from app.route import schemas
 from app.route import service
 
 router = APIRouter()
 
+
 # 1) 경로 계산 (DB 저장 없음)
-@router.post("/find", response_model=schemas.RouteResponse)
+@router.post(
+    "/find",
+    response_model=schemas.RouteResponse,
+    summary="경로 계산 (개별 장애물 성공/실패 분석 v3)"
+)
 def find_route(
     request: schemas.RouteRequest,
     db: Session = Depends(get_db),
@@ -23,6 +27,7 @@ def find_route(
         db=db,
         user_id=current_user.id
     )
+
 
 # 2) 사용자가 선택한 경로 저장
 @router.post("/save", response_model=schemas.RouteStored)
@@ -36,7 +41,8 @@ def save_route(
         db=db,
         user_id=current_user.id
     )
-    
+
+
 # 조회
 @router.get("/my", response_model=list[schemas.RouteStored])
 def get_my_routes(
@@ -45,6 +51,7 @@ def get_my_routes(
 ):
     routes = service.get_my_routes(db=db, user_id=current_user.id)
     return routes
+
 
 # 저장된 경로 삭제 기능
 @router.delete("/delete/{route_id}")

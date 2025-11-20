@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from typing import List, Dict, Tuple
+from collections import defaultdict  # ✅ 추가
 
 import osmnx as ox
 import networkx as nx
@@ -35,7 +36,7 @@ def load_graph_for_route(start: Tuple[float, float],
                          network_type: str = "walk"):
     """
     start ~ end 영역을 포함하는 OSM 그래프 로딩.
-    한국 OSM 미러(osm.kr) 기반 Overpass 사용.
+    Overpass 엔드포인트는 외부 설정값 사용.
     """
     lat1, lon1 = start
     lat2, lon2 = end
@@ -66,7 +67,7 @@ def load_graph_for_route(start: Tuple[float, float],
     return G, (south, north, west, east)
 
 
-# --- 메인: A* + 장애물 패널티 + 회피 실패 판정 ---
+# --- 메인: A* + 장애물 패널티 + 회피 통계 계산 ---
 
 def astar_path_with_penalty(
     start: Tuple[float, float],
@@ -79,7 +80,10 @@ def astar_path_with_penalty(
     """
     - OSM 그래프 기반 A* 경로 탐색
     - YOLO 장애물(Obstacle) 테이블을 반영해 edge weight에 패널티 적용
-    - 회피 옵션(avoid_types) 중 실제로 회피하지 못한 타입만 risk_factors에 담아 반환
+    - 개별 장애물 단위로 회피 성공/실패 개수를 집계
+    - risk_factors: 선택한 타입 중 하나라도 실패한 타입 목록 (타입 단위)
+    - obstacle_stats: 타입별 total / success / failed 개수
+    - unavoidable: 실제 경로 반경 내에 포함된 장애물 목록
     """
 
     # 0. 그래프 로딩
@@ -145,6 +149,8 @@ def astar_path_with_penalty(
             "route": [start, end],
             "distance_m": fallback_distance,
             "risk_factors": avoid_types,  # 전부 실패
+            "obstacle_stats": {},         # 통계 없음
+            "unavoidable": [],            # 알 수 있는 장애물 없음
         }
 
     # 5. 경로 길이 계산 (m)
@@ -173,27 +179,58 @@ def astar_path_with_penalty(
         (G.nodes[n]["y"], G.nodes[n]["x"]) for n in path_nodes
     ]
 
-    # 7. 실제 경로 위에서 "선택한 타입" 중 어떤 장애물이 남아 있는지 체크
-    encountered_types: set[str] = set()
+    # 7. 개별 장애물 단위로 회피 성공/실패 집계
+    type_total = defaultdict(int)
+    type_failed = defaultdict(int)
+    type_success = defaultdict(int)
+    unavoidable_list: List[Dict[str, float | str]] = []
 
     if avoid_types and obs_list:
         for obs_lat, obs_lng, obs_type in obs_list:
-            # obs_type 은 무조건 avoid_types 안에 있음
+            type_total[obs_type] += 1
+            hit = False
+
+            # 경로 위 노드들 중 반경 내에 들어오는지 확인
             for n in path_nodes:
                 node_lat = G.nodes[n]["y"]
                 node_lng = G.nodes[n]["x"]
                 d = haversine_m(node_lat, node_lng, obs_lat, obs_lng)
                 if d <= radius_m:
-                    encountered_types.add(obs_type)
-                    break  # 이 장애물 타입은 이미 경로에 포함되었으므로 다음 장애물로
+                    hit = True
+                    unavoidable_list.append(
+                        {
+                            "type": obs_type,
+                            "lat": obs_lat,
+                            "lng": obs_lng,
+                        }
+                    )
+                    break
 
-    # 8. 최종적으로 "체크박스에서 선택했던 타입 중" 회피 실패한 것만 필터링
-    failed_avoids: List[str] = [
-        t for t in avoid_types if t in encountered_types
-    ]
+            if hit:
+                type_failed[obs_type] += 1
+            else:
+                type_success[obs_type] += 1
+
+    # 8. 타입별 통계 및 risk_factors 생성
+    obstacle_stats: Dict[str, Dict[str, int]] = {}
+    risk_factors: List[str] = []
+
+    for t in avoid_types:
+        total = type_total[t]
+        failed = type_failed[t]
+        success = type_success[t]
+        obstacle_stats[t] = {
+            "total": total,
+            "success": success,
+            "failed": failed,
+        }
+        if failed > 0:
+            risk_factors.append(t)
 
     return {
         "route": route_coords,
         "distance_m": total_distance,
-        "risk_factors": failed_avoids,  # 선택했던 것들 중 회피 실패한 타입만
+        "risk_factors": risk_factors,   # 장애물 타입 단위 실패 여부
+        "obstacle_stats": obstacle_stats,  # 타입별 total/success/failed
+        "unavoidable": unavoidable_list,   # 실제 경로 반경 내 장애물 목록
     }

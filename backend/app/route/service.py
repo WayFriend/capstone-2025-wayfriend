@@ -7,10 +7,26 @@ from app.route.models import RouteResult, Obstacle
 
 
 # ---------------------------------------------------------
-# 1) 경로 계산 (DB 저장 없음)
+# 1) 경로 계산 (A* 1회 실행, v3 로직에 맞게 단순화)
 # ---------------------------------------------------------
 def find_path_from_request(req, db: Session, user_id: int):
-    return find_best_path(req, db, user_id)
+    """
+    v3 로직:
+    - A*는 단 한 번만 실행
+    - pathfinding.py에서 개별 장애물 성공/실패를 모두 판단
+    - 타입 전체 회피 포기 삭제
+    - 결과는 pathfinding.py에 있는 obstacle_stats / unavoidable / risk_factors 그대로 반환
+    """
+    res = astar_path_with_penalty(
+        start=(req.start_lat, req.start_lng),
+        end=(req.end_lat, req.end_lng),
+        db=db,
+        avoid_types=req.avoid_types,
+        radius_m=req.radius_m,
+        penalties=req.penalties,
+    )
+
+    return res
 
 
 # ---------------------------------------------------------
@@ -69,55 +85,3 @@ def get_my_routes(db: Session, user_id: int):
 # ---------------------------------------------------------
 def get_all_obstacles(db: Session):
     return db.query(Obstacle).all()
-
-
-# ---------------------------------------------------------
-# 6) 최적 회피 경로 계산 (핵심 기능)
-# ---------------------------------------------------------
-def find_best_path(req, db, user_id):
-
-    current_avoid = list(req.avoid_types)
-
-    while True:
-        # 1) 경로 계산
-        res = astar_path_with_penalty(
-            start=(req.start_lat, req.start_lng),
-            end=(req.end_lat, req.end_lng),
-            db=db,
-            avoid_types=current_avoid,
-            radius_m=req.radius_m,
-            penalties=req.penalties,
-        )
-
-        failed = res["risk_factors"]
-
-        # 2) 모든 회피 성공 → 반환
-        if not failed:
-            return {
-                "route": res["route"],
-                "distance_m": res["distance_m"],
-                "risk_factors": failed,
-                "avoided_final": current_avoid
-            }
-
-        # 3) 실패한 회피 제거
-        for f in failed:
-            if f in current_avoid:
-                current_avoid.remove(f)
-
-        # 4) 더 이상 회피할 것이 없으면 → 최단거리 경로
-        if not current_avoid:
-            final = astar_path_with_penalty(
-                start=(req.start_lat, req.start_lng),
-                end=(req.end_lat, req.end_lng),
-                db=db,
-                avoid_types=[],
-                radius_m=req.radius_m,
-                penalties=req.penalties
-            )
-            return {
-                "route": final["route"],
-                "distance_m": final["distance_m"],
-                "risk_factors": [],
-                "avoided_final": []
-            }
