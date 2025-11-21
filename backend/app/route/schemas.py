@@ -1,7 +1,5 @@
-# backend/app/route/schemas.py
-
 from pydantic import BaseModel
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 
 
 # -----------------------------------------------------
@@ -18,7 +16,23 @@ class RouteRequest(BaseModel):
 
 
 # -----------------------------------------------------
-# 경로 계산 결과
+# v3: 장애물 통계 스키마
+# -----------------------------------------------------
+class ObstacleStats(BaseModel):
+    total: int
+    success: int
+    failed: int
+
+
+# v3: 개별 장애물(경로 반경 내 포함된 장애물)
+class UnavoidableItem(BaseModel):
+    type: str
+    lat: float
+    lng: float
+
+
+# -----------------------------------------------------
+# v3: 경로 계산 결과 (A* 1회 + 상세 리포트)
 # -----------------------------------------------------
 class RouteResponse(BaseModel):
     route: List[Tuple[float, float]]
@@ -29,7 +43,7 @@ class RouteResponse(BaseModel):
 
 
 # -----------------------------------------------------
-# 사용자가 선택해서 저장할 때 사용하는 요청 모델
+# 저장 요청 모델 (변경 없음)
 # -----------------------------------------------------
 class RouteSaveRequest(BaseModel):
     start_lat: float
@@ -42,7 +56,7 @@ class RouteSaveRequest(BaseModel):
 
 
 # -----------------------------------------------------
-# DB에서 저장된 경로 조회할 때 사용하는 응답 모델
+# 저장된 경로 조회 응답
 # -----------------------------------------------------
 class RouteStored(BaseModel):
     id: int
@@ -56,11 +70,11 @@ class RouteStored(BaseModel):
     created_at: str
 
     class Config:
-        from_attributes = True  # Pydantic v2 방식
+        from_attributes = True
 
 
 # -----------------------------------------------------
-# 장애물 조회 응답 모델
+# 장애물 조회 응답 모델 (변경 없음)
 # -----------------------------------------------------
 class ObstacleResponse(BaseModel):
     id: int
