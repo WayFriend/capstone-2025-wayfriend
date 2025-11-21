@@ -37,9 +37,9 @@ class UnavoidableItem(BaseModel):
 class RouteResponse(BaseModel):
     route: List[Tuple[float, float]]
     distance_m: float
-    risk_factors: List[str]                    # 실패한 타입
-    obstacle_stats: Dict[str, ObstacleStats]   # 타입별 통계
-    unavoidable: List[UnavoidableItem]         # 개별 장애물 정보
+    risk_factors: List[str]
+    avoided_final: List[str]
+    message: Optional[str] = None  # 회피 실패 시 보여줄 문구
 
 
 # -----------------------------------------------------
