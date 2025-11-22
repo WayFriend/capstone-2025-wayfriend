@@ -42,7 +42,7 @@ def load_graph_for_route(start: Tuple[float, float],
     lat2, lon2 = end
 
     # osmnx 기본 설정
-    ox.settings.use_cache = True
+    ox.settings.use_cache = False #잠시 바꿔둠.
     ox.settings.log_console = False
     ox.settings.overpass_rate_limit = True
     ox.settings.overpass_endpoint = "https://overpass-api.de/api/interpreter"
