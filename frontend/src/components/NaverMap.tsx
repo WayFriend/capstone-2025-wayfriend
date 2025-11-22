@@ -14,6 +14,7 @@ interface NaverMapProps {
   zoom?: number;
   startLocation?: { lat: number; lng: number; name: string } | null;
   endLocation?: { lat: number; lng: number; name: string } | null;
+  routePoints?: [number, number][]; // 경로 좌표 배열 [lat, lng][]
   onMapLoad?: (map: any) => void;
   onMapClick?: (lat: number, lng: number) => void;
   onMapIdle?: (center: { lat: number; lng: number }, zoom: number) => void;
@@ -26,6 +27,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
   zoom = 15,
   startLocation,
   endLocation,
+  routePoints,
   onMapLoad,
   onMapClick,
   onMapIdle,
@@ -34,6 +36,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
   const mapInstanceRef = useRef<any>(null);
   const isInitializedRef = useRef(false);
   const markersRef = useRef<any[]>([]);
+  const polylineRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [naverClientId, setNaverClientId] = useState<string | null>(null);
@@ -523,28 +526,72 @@ const NaverMap: React.FC<NaverMapProps> = ({
       }
     }
 
-    // 출발지와 도착지가 모두 있으면 지도 범위 조정
-    if (startLocation && endLocation) {
+    // 기존 경로선 제거
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null);
+      polylineRef.current = null;
+    }
+
+    // 경로선 그리기
+    if (routePoints && routePoints.length > 0) {
+      console.log('[NaverMap] 경로 표시 시작:', routePoints.length, '개 좌표');
+
+      const path = routePoints.map(point => {
+        // point는 [lat, lng] 형식
+        const lat = point[0];
+        const lng = point[1];
+        return new window.naver.maps.LatLng(lat, lng);
+      });
+
+      console.log('[NaverMap] 경로 첫 좌표:', path[0]?.y, path[0]?.x);
+      console.log('[NaverMap] 경로 마지막 좌표:', path[path.length - 1]?.y, path[path.length - 1]?.x);
+
+      const polyline = new window.naver.maps.Polyline({
+        path: path,
+        strokeColor: '#3A86FF',
+        strokeWeight: 5,
+        strokeOpacity: 0.8,
+        strokeStyle: 'solid',
+        map: mapInstanceRef.current
+      });
+
+      polylineRef.current = polyline;
+      console.log('[NaverMap] 경로선 생성 완료');
+
+      // 경로를 포함하도록 지도 범위 조정
       const bounds = new window.naver.maps.LatLngBounds();
-      bounds.extend(new window.naver.maps.LatLng(startLocation.lat, startLocation.lng));
-      bounds.extend(new window.naver.maps.LatLng(endLocation.lat, endLocation.lng));
+      path.forEach(latlng => bounds.extend(latlng));
       mapInstanceRef.current.fitBounds(bounds, { padding: 50 });
-    } else if (startLocation) {
-      mapInstanceRef.current.setCenter(new window.naver.maps.LatLng(startLocation.lat, startLocation.lng));
-      mapInstanceRef.current.setZoom(16);
-    } else if (endLocation) {
-      mapInstanceRef.current.setCenter(new window.naver.maps.LatLng(endLocation.lat, endLocation.lng));
-      mapInstanceRef.current.setZoom(16);
+      console.log('[NaverMap] 지도 범위 조정 완료');
+    } else {
+      // 경로가 없으면 출발지와 도착지만으로 범위 조정
+      if (startLocation && endLocation) {
+        const bounds = new window.naver.maps.LatLngBounds();
+        bounds.extend(new window.naver.maps.LatLng(startLocation.lat, startLocation.lng));
+        bounds.extend(new window.naver.maps.LatLng(endLocation.lat, endLocation.lng));
+        mapInstanceRef.current.fitBounds(bounds, { padding: 50 });
+      } else if (startLocation) {
+        mapInstanceRef.current.setCenter(new window.naver.maps.LatLng(startLocation.lat, startLocation.lng));
+        mapInstanceRef.current.setZoom(16);
+      } else if (endLocation) {
+        mapInstanceRef.current.setCenter(new window.naver.maps.LatLng(endLocation.lat, endLocation.lng));
+        mapInstanceRef.current.setZoom(16);
+      }
     }
 
     return () => {
-      // 컴포넌트 언마운트 시 마커 제거
+      // 컴포넌트 언마운트 시 마커 및 경로선 제거
       markersRef.current.forEach(marker => {
         marker.setMap(null);
       });
       markersRef.current = [];
+
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
+      }
     };
-  }, [startLocation, endLocation]);
+  }, [startLocation, endLocation, routePoints]);
 
   // 윈도우 리사이즈 시 지도 리사이즈
   useEffect(() => {

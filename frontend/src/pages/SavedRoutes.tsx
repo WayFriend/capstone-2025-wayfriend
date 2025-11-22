@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import RouteDetailModal from '../components/RouteDetailModal';
+import { getToken } from '../services/authService';
+import { reverseGeocode } from '../utils/naverMapApi';
 
 // 저장된 경로 데이터 타입 정의
 interface SavedRoute {
@@ -9,6 +11,11 @@ interface SavedRoute {
   end: string;
   savedDate: string;
   imageUrl: string;
+  startLocation?: { lat: number; lng: number; name: string };
+  endLocation?: { lat: number; lng: number; name: string };
+  routePoints?: [number, number][];
+  distanceM?: number;
+  avoided?: string[];
 }
 
 interface SavedRoutesProps {
@@ -81,33 +88,110 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
     setError(null);
 
     try {
-      // TODO: 백엔드 API가 준비되면 아래 주석을 해제하고 API 호출 사용
-      // const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      // const token = localStorage.getItem('token'); // 인증 토큰 (필요시)
-      // const response = await fetch(`${API_BASE_URL}/api/routes/saved`, {
-      //   method: 'GET',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     ...(token && { Authorization: `Bearer ${token}` })
-      //   }
-      // });
+      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const token = getToken();
 
-      // if (!response.ok) {
-      //   throw new Error(`API 오류: ${response.status}`);
-      // }
+      if (!token) {
+        setError('로그인이 필요합니다.');
+        setSavedRoutes([]);
+        setLoading(false);
+        return;
+      }
 
-      // const data = await response.json();
-      // setSavedRoutes(data.routes || []);
+      const response = await fetch(`${apiUrl}/route/my`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        }
+      });
 
-      // 현재는 API가 없으므로 더미 데이터 사용
-      console.log('[SavedRoutes] API 미구현 상태 - 더미 데이터 사용');
-      setSavedRoutes(MOCK_ROUTES);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || `API 오류: ${response.status}`);
+      }
+
+      const backendRoutes = await response.json();
+      console.log('✅ 저장된 경로 목록:', backendRoutes);
+
+      // 백엔드 응답을 프론트엔드 형식으로 변환 (주소 변환 포함)
+      const convertedRoutesPromises = backendRoutes.map(async (route: any) => {
+        try {
+          // 좌표를 주소로 변환 (병렬 처리)
+          const [startAddress, endAddress] = await Promise.all([
+            reverseGeocode(route.start_lat, route.start_lng).catch(() =>
+              `${route.start_lat.toFixed(4)}, ${route.start_lng.toFixed(4)}`
+            ),
+            reverseGeocode(route.end_lat, route.end_lng).catch(() =>
+              `${route.end_lat.toFixed(4)}, ${route.end_lng.toFixed(4)}`
+            )
+          ]);
+
+          return {
+            id: route.id,
+            title: `${startAddress} → ${endAddress}`,
+            start: startAddress,
+            end: endAddress,
+            savedDate: new Date(route.created_at).toLocaleDateString('ko-KR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
+            imageUrl: '', // 경로 이미지는 나중에 생성
+            startLocation: {
+              lat: route.start_lat,
+              lng: route.start_lng,
+              name: startAddress
+            },
+            endLocation: {
+              lat: route.end_lat,
+              lng: route.end_lng,
+              name: endAddress
+            },
+            routePoints: route.route_points || [],
+            distanceM: route.distance_m,
+            avoided: route.avoided ? (typeof route.avoided === 'string' ? route.avoided.split(',') : route.avoided) : []
+          };
+        } catch (err) {
+          console.error(`경로 ${route.id} 변환 실패:`, err);
+          // 주소 변환 실패 시 좌표로 표시
+          return {
+            id: route.id,
+            title: `${route.start_lat.toFixed(4)}, ${route.start_lng.toFixed(4)} → ${route.end_lat.toFixed(4)}, ${route.end_lng.toFixed(4)}`,
+            start: `${route.start_lat.toFixed(4)}, ${route.start_lng.toFixed(4)}`,
+            end: `${route.end_lat.toFixed(4)}, ${route.end_lng.toFixed(4)}`,
+            savedDate: new Date(route.created_at).toLocaleDateString('ko-KR', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            }),
+            imageUrl: '',
+            startLocation: {
+              lat: route.start_lat,
+              lng: route.start_lng,
+              name: `${route.start_lat.toFixed(4)}, ${route.start_lng.toFixed(4)}`
+            },
+            endLocation: {
+              lat: route.end_lat,
+              lng: route.end_lng,
+              name: `${route.end_lat.toFixed(4)}, ${route.end_lng.toFixed(4)}`
+            },
+            routePoints: route.route_points || [],
+            distanceM: route.distance_m,
+            avoided: route.avoided ? (typeof route.avoided === 'string' ? route.avoided.split(',') : route.avoided) : []
+          };
+        }
+      });
+
+      const convertedRoutes = await Promise.all(convertedRoutesPromises);
+
+      setSavedRoutes(convertedRoutes);
 
     } catch (err) {
-      console.error('[SavedRoutes] API 호출 실패, 더미 데이터 사용:', err);
-      // API 호출 실패 시에도 더미 데이터로 표시
-      setSavedRoutes(MOCK_ROUTES);
-      // setError('저장된 경로를 불러오는데 실패했습니다.');
+      console.error('❌ 저장된 경로 조회 실패:', err);
+      setError(err instanceof Error ? err.message : '저장된 경로를 불러오는데 실패했습니다.');
+      // 오류 발생 시 빈 배열로 설정
+      setSavedRoutes([]);
     } finally {
       setLoading(false);
     }
@@ -128,15 +212,13 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
     }
 
     // 저장된 경로 정보를 FindRoute로 전달
-    // TODO: 실제 API 연동 시 좌표 정보도 함께 전달
     onNavigateToRoute({
       start: selectedRoute.start,
       end: selectedRoute.end,
-      // 실제 구현 시 저장된 경로의 좌표 정보를 사용
-      // startLocation: { lat: ..., lng: ..., name: selectedRoute.start },
-      // endLocation: { lat: ..., lng: ..., name: selectedRoute.end },
-      mode: 'walking', // 기본값, 실제로는 저장된 값 사용
-      filter: 'safest' // 기본값, 실제로는 저장된 값 사용
+      startLocation: selectedRoute.startLocation,
+      endLocation: selectedRoute.endLocation,
+      mode: 'walking', // 기본값
+      filter: 'safest' // 기본값
     });
 
     // 모달 닫기
@@ -150,31 +232,36 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
     }
 
     try {
-      // TODO: 백엔드 API가 준비되면 아래 주석을 해제하고 API 호출 사용
-      // const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      // const token = localStorage.getItem('token');
-      // const response = await fetch(`${API_BASE_URL}/api/routes/${routeId}`, {
-      //   method: 'DELETE',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //     ...(token && { Authorization: `Bearer ${token}` })
-      //   }
-      // });
+      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const token = getToken();
 
-      // if (!response.ok) {
-      //   throw new Error(`삭제 실패: ${response.status}`);
-      // }
+      if (!token) {
+        alert('로그인이 필요합니다.');
+        return;
+      }
+
+      const response = await fetch(`${apiUrl}/route/delete/${routeId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || `삭제 실패: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ 경로 삭제 완료:', result);
 
       // API 호출 성공 후 목록 다시 불러오기
-      // await fetchSavedRoutes();
-
-      // 현재는 로컬 상태만 업데이트
-      setSavedRoutes(savedRoutes.filter(route => route.id !== routeId));
-      console.log(`[SavedRoutes] 경로 ${routeId} 삭제됨 (로컬 상태)`);
+      await fetchSavedRoutes();
 
     } catch (err) {
-      console.error('[SavedRoutes] 삭제 실패:', err);
-      alert('경로 삭제에 실패했습니다.');
+      console.error('❌ 경로 삭제 실패:', err);
+      alert(`경로 삭제에 실패했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
     }
   };
 

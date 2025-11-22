@@ -7,6 +7,7 @@ from app import database
 from app.auth import api
 from app.route import api as route_api
 from app.route import models as route_models
+from app.map import api as map_api
 
 # FastAPI 인스턴스
 app = FastAPI()
@@ -37,6 +38,7 @@ route_models.Base.metadata.create_all(bind=database.engine)
 # 라우터 등록
 app.include_router(api.router, prefix="/user", tags=["User"])
 app.include_router(route_api.router, prefix="/route", tags=["Route"])
+app.include_router(map_api.router, tags=["Map"])
 
 @app.get("/")
 def root():
