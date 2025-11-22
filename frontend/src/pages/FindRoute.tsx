@@ -3,6 +3,7 @@ import NaverMap from '../components/NaverMap';
 import LocationSearch from '../components/LocationSearch';
 import RouteCalculator, { RouteInfo } from '../components/RouteCalculator';
 import { geocode } from '../utils/naverMapApi';
+import { getToken } from '../services/authService';
 
 interface SavedRouteForNavigation {
   start: string;
@@ -32,6 +33,7 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
   const [routeInfo, setRouteInfo] = useState<RouteInfo | null>(null);
   const [isLoadingSavedRoute, setIsLoadingSavedRoute] = useState(false);
   const [selectedObstacles, setSelectedObstacles] = useState<Set<ObstacleType>>(new Set());
+  const [saveNotification, setSaveNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   const handleFromLocationSelect = (location: { name: string; lat: number; lng: number }) => {
     setFromLocationText(location.name);
@@ -45,6 +47,73 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
 
   const handleRouteCalculated = (route: RouteInfo | null) => {
     setRouteInfo(route);
+  };
+
+  const handleSaveRoute = async () => {
+    if (!routeInfo || !fromLocation || !toLocation) {
+      setSaveNotification({ type: 'error', message: '저장할 경로 정보가 없습니다.' });
+      setTimeout(() => setSaveNotification(null), 3000);
+      return;
+    }
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const token = getToken();
+
+      // routeInfo에서 route_points와 distance_m 추출
+      const routePoints: [number, number][] = routeInfo.routePoints || [
+        [fromLocation.lat, fromLocation.lng],
+        [toLocation.lat, toLocation.lng]
+      ];
+
+      // distance_m 사용 (routeInfo에 있으면 사용, 없으면 계산)
+      const distanceM = routeInfo.distanceM || (() => {
+        const distanceStr = routeInfo.totalDistance;
+        return distanceStr.includes('km')
+          ? parseFloat(distanceStr.replace('km', '')) * 1000
+          : parseFloat(distanceStr.replace('m', ''));
+      })();
+
+      const requestBody = {
+        start_lat: fromLocation.lat,
+        start_lng: fromLocation.lng,
+        end_lat: toLocation.lat,
+        end_lng: toLocation.lng,
+        route_points: routePoints,
+        distance_m: Math.round(distanceM),
+        avoided: Array.from(selectedObstacles)
+      };
+
+      const response = await fetch(`${apiUrl}/route/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || `저장 실패: ${response.status}`);
+      }
+
+      const savedRoute = await response.json();
+      console.log('✅ 경로 저장 완료:', savedRoute);
+
+      setSaveNotification({ type: 'success', message: '경로가 저장되었습니다!' });
+
+      // 3초 후 알림 자동 제거
+      setTimeout(() => setSaveNotification(null), 3000);
+
+    } catch (err) {
+      console.error('❌ 경로 저장 실패:', err);
+      setSaveNotification({
+        type: 'error',
+        message: `경로 저장에 실패했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`
+      });
+      setTimeout(() => setSaveNotification(null), 3000);
+    }
   };
 
   const toggleObstacle = (obstacle: ObstacleType) => {
@@ -292,17 +361,48 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
 
           {/* Route Summary */}
           {routeInfo && (
-            <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-              <div className="flex justify-between items-center">
-                <div>
-                  <p className="text-sm text-gray-600">예상 시간</p>
-                  <p className="text-lg font-bold text-gray-900">{routeInfo.totalDuration}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">거리</p>
-                  <p className="text-lg font-bold text-gray-900">{routeInfo.totalDistance}</p>
+            <div className="mb-6">
+              <div className="p-4 bg-gray-50 rounded-lg mb-3">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-sm text-gray-600">예상 시간</p>
+                    <p className="text-lg font-bold text-gray-900">{routeInfo.totalDuration}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">거리</p>
+                    <p className="text-lg font-bold text-gray-900">{routeInfo.totalDistance}</p>
+                  </div>
                 </div>
               </div>
+              {/* 경로 저장 버튼 */}
+              <button
+                onClick={handleSaveRoute}
+                className="w-full py-3 px-4 rounded-lg font-semibold text-white bg-green-500 hover:bg-green-600 active:bg-green-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>경로 저장</span>
+              </button>
+              {/* 저장 알림 */}
+              {saveNotification && (
+                <div className={`mt-3 p-3 rounded-lg flex items-center gap-2 ${
+                  saveNotification.type === 'success'
+                    ? 'bg-green-50 text-green-800 border border-green-200'
+                    : 'bg-red-50 text-red-800 border border-red-200'
+                }`}>
+                  {saveNotification.type === 'success' ? (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                  <span className="text-sm font-medium">{saveNotification.message}</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -377,6 +477,7 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
           zoom={routeInfo ? 14 : fromLocation && toLocation ? 14 : 15}
           startLocation={fromLocation}
           endLocation={toLocation}
+          routePoints={routeInfo?.routePoints}
           onMapLoad={(map) => {
             console.log('네이버 지도가 로드되었습니다:', map);
           }}
