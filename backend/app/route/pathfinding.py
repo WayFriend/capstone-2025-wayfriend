@@ -114,7 +114,7 @@ def astar_path_with_penalty(
 
     # 3. edge weight 계산: 거리 + 장애물 패널티
     for u, v, key, data in G.edges(keys=True, data=True):
-        # 기본 길이 (OSM length 사용, 없으면 직접 계산)
+        # 기본 길이 계산
         length = data.get("length")
         if length is None:
             y1 = G.nodes[u]["y"]
@@ -126,18 +126,38 @@ def astar_path_with_penalty(
 
         penalty_total = 0.0
 
+        # === 1) 장애물 패널티 (기존 코드) ===
         if avoid_types and obs_list:
-            # edge 중간 지점 기준으로 장애물까지 거리 계산
             y_mid = (G.nodes[u]["y"] + G.nodes[v]["y"]) / 2
             x_mid = (G.nodes[u]["x"] + G.nodes[v]["x"]) / 2
 
             for obs_lat, obs_lng, obs_type in obs_list:
-                # obs_type 은 이미 avoid_types 안에 있는 것들만 들어옴
                 d = haversine_m(y_mid, x_mid, obs_lat, obs_lng)
                 if d <= radius_m:
                     penalty_total += penalties.get(obs_type, 0.0)
 
+        # === 2) 차량 도로 패널티 추가 (핵심) ===
+        hw = data.get("highway", "")
+
+        # 여러 타입일 수 있으니 리스트 처리
+        if isinstance(hw, list):
+            hw_main = hw[0]
+        else:
+            hw_main = hw
+
+        # 차도 판단 기준: 보행 중심이 아닌 도로들
+        car_roads = [
+            "motorway", "trunk", "primary", "secondary", "tertiary",
+            "motorway_link", "trunk_link", "primary_link", "secondary_link"
+        ]
+
+        # 차량 기반 도로는 보행 가능하더라도 패널티 강하게 부여
+        if hw_main in car_roads:
+            penalty_total += 10000  # 👈 핵심 패널티 (원하면 더 올려도 됨)
+
+        # 최종 가중치
         data["weight"] = length + penalty_total
+
 
     # 4. A* 경로 탐색
     try:
