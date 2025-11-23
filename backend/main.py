@@ -25,9 +25,9 @@ app.add_middleware(
         "http://34.239.248.132:5173",
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "DELETE", "OPTIONS"],  # 실제 사용하는 메서드만 허용
-    allow_headers=["Content-Type", "Authorization"],  # 실제 사용하는 헤더만 허용
-    expose_headers=[], # 필요한 경우 명시적으로 추가
+    allow_methods=["*"],  # 모든 HTTP 메서드 허용
+    allow_headers=["*"],  # 모든 헤더 허용
+    expose_headers=["*"],  # 모든 헤더 노출
     max_age=3600,
 )
 
