@@ -12,8 +12,7 @@ from app.map import api as map_api
 # FastAPI 인스턴스
 app = FastAPI()
 
-# CORS 설정 - Starlette의 CORSMiddleware는 자동으로 OPTIONS를 처리합니다
-# 미들웨어는 역순으로 실행되므로, CORSMiddleware를 먼저 추가하면 마지막에 실행됩니다
+# CORS 설정
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -23,11 +22,12 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://34.239.248.132:3000",
         "http://34.239.248.132:5173",
+        "http://34.239.248.132:8000",  # 백엔드 자체 origin도 추가
     ],
     allow_credentials=True,
-    allow_methods=["*"],  # 모든 HTTP 메서드 허용
-    allow_headers=["*"],  # 모든 헤더 허용
-    expose_headers=["*"],  # 모든 헤더 노출
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=["*"],
+    expose_headers=["*"],
     max_age=3600,
 )
 

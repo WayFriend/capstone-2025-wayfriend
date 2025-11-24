@@ -1,5 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 from typing import List, Tuple, Optional, Dict
+from datetime import datetime
 
 
 # -----------------------------------------------------
@@ -67,7 +68,11 @@ class RouteStored(BaseModel):
     route_points: List[Tuple[float, float]]
     distance_m: Optional[float] = None
     avoided: Optional[str] = None
-    created_at: str
+    created_at: datetime
+
+    @field_serializer('created_at')
+    def serialize_created_at(self, value: datetime) -> str:
+        return value.isoformat() if value else ""
 
     class Config:
         from_attributes = True
