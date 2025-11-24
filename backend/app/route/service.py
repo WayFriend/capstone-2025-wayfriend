@@ -17,21 +17,28 @@ def find_path_from_request(req, db: Session, user_id: int):
 # 2) 사용자가 선택한 경로 저장
 # ---------------------------------------------------------
 def save_route(req, db: Session, user_id: int) -> RouteResult:
-    route_obj = RouteResult(
-        user_id=user_id,
-        start_lat=req.start_lat,
-        start_lng=req.start_lng,
-        end_lat=req.end_lat,
-        end_lng=req.end_lng,
-        route_points=req.route_points,
-        distance_m=req.distance_m,
-        avoided=",".join(req.avoided),
-    )
+    try:
+        # avoided 리스트를 문자열로 변환 (빈 리스트 처리)
+        avoided_str = ",".join(req.avoided) if req.avoided else ""
+        
+        route_obj = RouteResult(
+            user_id=user_id,
+            start_lat=req.start_lat,
+            start_lng=req.start_lng,
+            end_lat=req.end_lat,
+            end_lng=req.end_lng,
+            route_points=req.route_points,  # JSON 컬럼이므로 자동 직렬화됨
+            distance_m=req.distance_m,
+            avoided=avoided_str,
+        )
 
-    db.add(route_obj)
-    db.commit()
-    db.refresh(route_obj)
-    return route_obj
+        db.add(route_obj)
+        db.commit()
+        db.refresh(route_obj)
+        return route_obj
+    except Exception as e:
+        db.rollback()
+        raise e
 
 
 # ---------------------------------------------------------
