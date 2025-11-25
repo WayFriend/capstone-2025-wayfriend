@@ -119,21 +119,53 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
         try {
           // 좌표를 주소로 변환 (병렬 처리)
           const [startAddressRaw, endAddressRaw] = await Promise.all([
-            reverseGeocode(route.start_lat, route.start_lng).catch(() =>
-              `${route.start_lat.toFixed(4)}, ${route.start_lng.toFixed(4)}`
-            ),
-            reverseGeocode(route.end_lat, route.end_lng).catch(() =>
-              `${route.end_lat.toFixed(4)}, ${route.end_lng.toFixed(4)}`
-            )
+            reverseGeocode(route.start_lat, route.start_lng).catch((err) => {
+              console.error(`출발지 역지오코딩 실패 (${route.start_lat}, ${route.start_lng}):`, err);
+              return `${route.start_lat.toFixed(4)}, ${route.start_lng.toFixed(4)}`;
+            }),
+            reverseGeocode(route.end_lat, route.end_lng).catch((err) => {
+              console.error(`도착지 역지오코딩 실패 (${route.end_lat}, ${route.end_lng}):`, err);
+              return `${route.end_lat.toFixed(4)}, ${route.end_lng.toFixed(4)}`;
+            })
           ]);
 
+          console.log(`[역지오코딩] 원본 결과 - 출발지: "${startAddressRaw}", 도착지: "${endAddressRaw}"`);
+          console.log(`[역지오코딩] 출발지 타입: ${typeof startAddressRaw}, 길이: ${startAddressRaw?.length}`);
+          console.log(`[역지오코딩] 도착지 타입: ${typeof endAddressRaw}, 길이: ${endAddressRaw?.length}`);
+
           // "주소를 찾을 수 없습니다"인 경우 좌표로 대체
-          const startAddress = startAddressRaw === "주소를 찾을 수 없습니다." 
+          const startAddress = (startAddressRaw === "주소를 찾을 수 없습니다." || !startAddressRaw || startAddressRaw.trim() === "")
             ? `${route.start_lat.toFixed(4)}, ${route.start_lng.toFixed(4)}`
-            : startAddressRaw;
-          const endAddress = endAddressRaw === "주소를 찾을 수 없습니다."
+            : startAddressRaw.trim();
+          const endAddress = (endAddressRaw === "주소를 찾을 수 없습니다." || !endAddressRaw || endAddressRaw.trim() === "")
             ? `${route.end_lat.toFixed(4)}, ${route.end_lng.toFixed(4)}`
-            : endAddressRaw;
+            : endAddressRaw.trim();
+
+          console.log(`[역지오코딩] 최종 주소 - 출발지: "${startAddress}", 도착지: "${endAddress}"`);
+
+          // 경로 이미지 생성
+          let imageUrl = '';
+          if (route.route_points && route.route_points.length > 0) {
+            try {
+              const { getStaticMapImage } = await import('../utils/naverMapApi');
+              const center = {
+                lat: (route.start_lat + route.end_lat) / 2,
+                lng: (route.start_lng + route.end_lng) / 2
+              };
+              imageUrl = await getStaticMapImage(
+                center,
+                15,
+                800,
+                400,
+                route.route_points,
+                { lat: route.start_lat, lng: route.start_lng },
+                { lat: route.end_lat, lng: route.end_lng }
+              );
+            } catch (err) {
+              console.error('지도 이미지 생성 실패:', err);
+              imageUrl = '';
+            }
+          }
 
           return {
             id: route.id,
@@ -145,7 +177,7 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
               month: 'long',
               day: 'numeric'
             }),
-            imageUrl: '', // 경로 이미지는 나중에 생성
+            imageUrl: imageUrl,
             startLocation: {
               lat: route.start_lat,
               lng: route.start_lng,

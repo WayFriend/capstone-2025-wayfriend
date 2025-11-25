@@ -197,20 +197,38 @@ export const getStaticMapImage = async (
   center: { lat: number; lng: number },
   zoom: number = 15,
   width: number = 800,
-  height: number = 600
+  height: number = 600,
+  routePoints?: [number, number][],  // 경로 좌표 리스트 [[lat, lng], ...]
+  startPoint?: { lat: number; lng: number },  // 출발지 좌표
+  endPoint?: { lat: number; lng: number }  // 도착지 좌표
 ): Promise<string> => {
   try {
+    const requestBody: any = {
+      center: { lat: center.lat, lng: center.lng },
+      zoom,
+      width,
+      height
+    };
+
+    // 경로 좌표가 있으면 추가
+    if (routePoints && routePoints.length > 0) {
+      requestBody.route_points = routePoints;
+    }
+
+    // 출발지/도착지 좌표 추가
+    if (startPoint) {
+      requestBody.start_point = { lat: startPoint.lat, lng: startPoint.lng };
+    }
+    if (endPoint) {
+      requestBody.end_point = { lat: endPoint.lat, lng: endPoint.lng };
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/static-map`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        center: { lat: center.lat, lng: center.lng },
-        zoom,
-        width,
-        height
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     if (!response.ok) {
@@ -253,6 +271,7 @@ export const getStaticMapImage = async (
 // Reverse Geocoding (좌표 → 주소) - 백엔드 API 사용
 export const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
   try {
+    console.log(`[역지오코딩] 요청: (${lat}, ${lng})`);
     const response = await fetch(`${API_BASE_URL}/api/reverse-geocode`, {
       method: 'POST',
       headers: {
@@ -262,13 +281,18 @@ export const reverseGeocode = async (lat: number, lng: number): Promise<string> 
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[역지오코딩] API 오류 (${response.status}):`, errorText);
       throw new Error(`Reverse Geocoding API 오류: ${response.status}`);
     }
 
     const data = await response.json();
-    return data.address || '주소를 찾을 수 없습니다.';
+    console.log(`[역지오코딩] 응답:`, data);
+    const address = data.address || '주소를 찾을 수 없습니다.';
+    console.log(`[역지오코딩] 최종 주소: "${address}"`);
+    return address;
   } catch (error) {
-     console.error('역지오코딩 오류:', error);
+    console.error('[역지오코딩] 오류:', error);
     throw error;
   }
 };
