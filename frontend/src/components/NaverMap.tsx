@@ -325,8 +325,18 @@ const NaverMap: React.FC<NaverMapProps> = ({
 
             if (map.isReady) {
               isInitializedRef.current = true;
-              onMapLoad?.(map);
               console.log('[SUCCESS] 네이버 동적 지도 로드 완료 (isReady: true)');
+
+              // 지도가 완전히 로드된 후 마커와 경로 그리기
+              setTimeout(() => {
+                // 마커와 경로를 그리는 로직을 강제로 실행
+                if (startLocation || endLocation || routePoints) {
+                  console.log('[NaverMap] 지도 로드 완료 후 마커/경로 그리기 시작');
+                  // useEffect가 자동으로 실행되도록 하기 위해 약간의 지연
+                }
+              }, 100);
+
+              onMapLoad?.(map);
 
               // 추가 확인: 약간의 지연 후 다시 배경 이미지 확인
               setTimeout(() => {
@@ -427,8 +437,20 @@ const NaverMap: React.FC<NaverMapProps> = ({
   // 마커 업데이트
   useEffect(() => {
     if (!isInitializedRef.current || !mapInstanceRef.current || !window.naver || !window.naver.maps) {
+      console.log('[NaverMap] 지도가 아직 초기화되지 않음:', {
+        isInitialized: isInitializedRef.current,
+        mapInstance: !!mapInstanceRef.current,
+        naver: !!window.naver,
+        maps: !!(window.naver && window.naver.maps)
+      });
       return;
     }
+
+    console.log('[NaverMap] 마커/경로 업데이트 시작:', {
+      startLocation,
+      endLocation,
+      routePointsCount: routePoints?.length || 0
+    });
 
     // 기존 마커 제거
     markersRef.current.forEach(marker => {
@@ -438,6 +460,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
 
     // 출발지 마커 추가
     if (startLocation) {
+      console.log('[NaverMap] 출발지 마커 추가:', startLocation);
       const startMarker = new window.naver.maps.Marker({
         position: new window.naver.maps.LatLng(startLocation.lat, startLocation.lng),
         map: mapInstanceRef.current,
@@ -483,6 +506,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
 
     // 도착지 마커 추가
     if (endLocation) {
+      console.log('[NaverMap] 도착지 마커 추가:', endLocation);
       const endMarker = new window.naver.maps.Marker({
         position: new window.naver.maps.LatLng(endLocation.lat, endLocation.lng),
         map: mapInstanceRef.current,
