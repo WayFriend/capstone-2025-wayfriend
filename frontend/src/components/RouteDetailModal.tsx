@@ -406,4 +406,3 @@ const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
 };
 
 export default RouteDetailModal;
-
