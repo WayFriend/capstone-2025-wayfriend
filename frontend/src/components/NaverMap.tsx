@@ -578,7 +578,12 @@ const NaverMap: React.FC<NaverMapProps> = ({
     });
 
     if (!isInitializedRef.current || !mapInstanceRef.current || !window.naver || !window.naver.maps) {
-      console.log('[NaverMap] 지도가 아직 초기화되지 않음 - 마커 그리기 스킵');
+      console.log('[NaverMap] 지도가 아직 초기화되지 않음 - 마커 그리기 스킵:', {
+        isInitialized: isInitializedRef.current,
+        mapInstance: !!mapInstanceRef.current,
+        naver: !!window.naver,
+        maps: !!(window.naver && window.naver.maps)
+      });
       return;
     }
 
