@@ -386,26 +386,46 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
 
                     {/* 전체 통계 */}
                     {(() => {
-                      const totalSelected = selectedObstacles.size;
-                      const successCount = routeInfo.avoidedFinal?.length || 0;
-                      const failedCount = routeInfo.riskFactors?.length || 0;
-                      const successRate = totalSelected > 0 ? Math.round((successCount / totalSelected) * 100) : 0;
+                      // obstacle_stats가 있으면 실제 장애물 개수 사용, 없으면 타입 개수 사용
+                      const obstacleStats = routeInfo.obstacleStats || {};
+                      let totalObstacles = 0;
+                      let successObstacles = 0;
+                      let failedObstacles = 0;
+
+                      if (Object.keys(obstacleStats).length > 0) {
+                        // 실제 장애물 개수 통계
+                        Object.values(obstacleStats).forEach((stats) => {
+                          totalObstacles += stats.total;
+                          successObstacles += stats.success;
+                          failedObstacles += stats.failed;
+                        });
+                      } else {
+                        // fallback: 타입 개수 기준
+                        const totalSelected = selectedObstacles.size;
+                        const successCount = routeInfo.avoidedFinal?.length || 0;
+                        const failedCount = routeInfo.riskFactors?.length || 0;
+                        totalObstacles = totalSelected;
+                        successObstacles = successCount;
+                        failedObstacles = failedCount;
+                      }
+
+                      const successRate = totalObstacles > 0 ? Math.round((successObstacles / totalObstacles) * 100) : 0;
 
                       return (
                         <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                           <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-gray-700">전체 선택</span>
-                            <span className="text-sm font-bold text-gray-900">{totalSelected}개</span>
+                            <span className="text-sm font-medium text-gray-700">전체 장애물</span>
+                            <span className="text-sm font-bold text-gray-900">{totalObstacles}개</span>
                           </div>
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-medium text-green-700">회피 성공</span>
-                            <span className="text-sm font-bold text-green-700">{successCount}개</span>
+                            <span className="text-sm font-bold text-green-700">{successObstacles}개</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-red-700">회피 실패</span>
-                            <span className="text-sm font-bold text-red-700">{failedCount}개</span>
+                            <span className="text-sm font-bold text-red-700">{failedObstacles}개</span>
                           </div>
-                          {totalSelected > 0 && (
+                          {totalObstacles > 0 && (
                             <div className="mt-3 pt-3 border-t border-blue-200">
                               <div className="flex items-center justify-between">
                                 <span className="text-xs text-gray-600">회피 성공률</span>

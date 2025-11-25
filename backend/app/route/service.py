@@ -20,7 +20,7 @@ def save_route(req, db: Session, user_id: int) -> RouteResult:
     try:
         # avoided 리스트를 문자열로 변환 (빈 리스트 처리)
         avoided_str = ",".join(req.avoided) if req.avoided else ""
-        
+
         route_obj = RouteResult(
             user_id=user_id,
             start_lat=req.start_lat,
@@ -104,7 +104,8 @@ def find_best_path(req, db, user_id):
                 "route": res["route"],
                 "distance_m": res["distance_m"],
                 "risk_factors": failed,
-                "avoided_final": current_avoid
+                "avoided_final": current_avoid,
+                "obstacle_stats": res.get("obstacle_stats", {})  # 장애물 통계 추가
             }
 
         # 3) 실패한 회피 제거
@@ -126,5 +127,6 @@ def find_best_path(req, db, user_id):
                 "route": final["route"],
                 "distance_m": final["distance_m"],
                 "risk_factors": [],
-                "avoided_final": []
+                "avoided_final": [],
+                "obstacle_stats": final.get("obstacle_stats", {})  # 장애물 통계 추가
             }
