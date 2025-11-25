@@ -325,18 +325,150 @@ const NaverMap: React.FC<NaverMapProps> = ({
 
             if (map.isReady) {
               isInitializedRef.current = true;
-              console.log('[SUCCESS] 네이버 동적 지도 로드 완료 (isReady: true)');
-
-              // 지도가 완전히 로드된 후 마커와 경로 그리기
-              setTimeout(() => {
-                // 마커와 경로를 그리는 로직을 강제로 실행
-                if (startLocation || endLocation || routePoints) {
-                  console.log('[NaverMap] 지도 로드 완료 후 마커/경로 그리기 시작');
-                  // useEffect가 자동으로 실행되도록 하기 위해 약간의 지연
-                }
-              }, 100);
+              console.log('[SUCCESS] 네이버 동적 지도 로드 완료 (isReady: true)', {
+                startLocation,
+                endLocation,
+                routePointsCount: routePoints?.length || 0
+              });
 
               onMapLoad?.(map);
+
+              // 지도가 완전히 로드된 후 마커와 경로 그리기 (강제 실행)
+              setTimeout(() => {
+                if (startLocation || endLocation || routePoints) {
+                  console.log('[NaverMap] 지도 로드 완료 후 마커/경로 강제 그리기 시작', {
+                    isInitialized: isInitializedRef.current,
+                    hasMapInstance: !!mapInstanceRef.current,
+                    startLocation,
+                    endLocation,
+                    routePointsCount: routePoints?.length || 0
+                  });
+
+                  // 리사이즈 이벤트 트리거
+                  window.naver.maps.Event.trigger(map, 'resize');
+
+                  // 마커를 직접 그리기 (useEffect가 실행되지 않을 경우 대비)
+                  if (isInitializedRef.current && mapInstanceRef.current && window.naver && window.naver.maps) {
+                    console.log('[NaverMap] 마커 강제 그리기 시작');
+
+                    // 기존 마커 제거
+                    markersRef.current.forEach(marker => {
+                      marker.setMap(null);
+                    });
+                    markersRef.current = [];
+
+                    // 출발지 마커 추가
+                    if (startLocation) {
+                      console.log('[NaverMap] 출발지 마커 강제 추가:', startLocation);
+                      const startMarker = new window.naver.maps.Marker({
+                        position: new window.naver.maps.LatLng(startLocation.lat, startLocation.lng),
+                        map: mapInstanceRef.current,
+                        icon: {
+                          content: `
+                            <div style="
+                              background-color: #3A86FF;
+                              width: 32px;
+                              height: 32px;
+                              border-radius: 50% 50% 50% 0;
+                              transform: rotate(-45deg);
+                              border: 3px solid white;
+                              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                              display: flex;
+                              align-items: center;
+                              justify-content: center;
+                            ">
+                              <div style="
+                                transform: rotate(45deg);
+                                color: white;
+                                font-weight: bold;
+                                font-size: 14px;
+                              ">출</div>
+                            </div>
+                          `,
+                          anchor: new window.naver.maps.Point(16, 16)
+                        },
+                        title: startLocation.name || '출발지'
+                      });
+                      markersRef.current.push(startMarker);
+                    }
+
+                    // 도착지 마커 추가
+                    if (endLocation) {
+                      console.log('[NaverMap] 도착지 마커 강제 추가:', endLocation);
+                      const endMarker = new window.naver.maps.Marker({
+                        position: new window.naver.maps.LatLng(endLocation.lat, endLocation.lng),
+                        map: mapInstanceRef.current,
+                        icon: {
+                          content: `
+                            <div style="
+                              background-color: #EF4444;
+                              width: 32px;
+                              height: 32px;
+                              border-radius: 50% 50% 50% 0;
+                              transform: rotate(-45deg);
+                              border: 3px solid white;
+                              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                              display: flex;
+                              align-items: center;
+                              justify-content: center;
+                            ">
+                              <div style="
+                                transform: rotate(45deg);
+                                color: white;
+                                font-weight: bold;
+                                font-size: 14px;
+                              ">도</div>
+                            </div>
+                          `,
+                          anchor: new window.naver.maps.Point(16, 16)
+                        },
+                        title: endLocation.name || '도착지'
+                      });
+                      markersRef.current.push(endMarker);
+                    }
+
+                    // 경로선 그리기
+                    if (routePoints && routePoints.length > 0) {
+                      console.log('[NaverMap] 경로선 강제 추가:', routePoints.length, '개 좌표');
+                      if (polylineRef.current) {
+                        polylineRef.current.setMap(null);
+                      }
+
+                      const path = routePoints.map(point => {
+                        const lat = point[0];
+                        const lng = point[1];
+                        return new window.naver.maps.LatLng(lat, lng);
+                      });
+
+                      const polyline = new window.naver.maps.Polyline({
+                        path: path,
+                        strokeColor: '#3A86FF',
+                        strokeWeight: 5,
+                        strokeOpacity: 0.8,
+                        strokeStyle: 'solid',
+                        map: mapInstanceRef.current
+                      });
+
+                      polylineRef.current = polyline;
+
+                      // 경로를 포함하도록 지도 범위 조정
+                      const bounds = new window.naver.maps.LatLngBounds();
+                      path.forEach(latlng => bounds.extend(latlng));
+                      mapInstanceRef.current.fitBounds(bounds, { padding: 50 });
+                    } else if (startLocation && endLocation) {
+                      // 경로가 없으면 출발지와 도착지만으로 범위 조정
+                      const bounds = new window.naver.maps.LatLngBounds();
+                      bounds.extend(new window.naver.maps.LatLng(startLocation.lat, startLocation.lng));
+                      bounds.extend(new window.naver.maps.LatLng(endLocation.lat, endLocation.lng));
+                      mapInstanceRef.current.fitBounds(bounds, { padding: 50 });
+                    }
+
+                    console.log('[NaverMap] 마커/경로 강제 그리기 완료');
+                  }
+                } else {
+                  console.log('[NaverMap] 마커/경로 데이터 없음 - 그리기 스킵');
+                }
+              }, 500);
 
               // 추가 확인: 약간의 지연 후 다시 배경 이미지 확인
               setTimeout(() => {
@@ -436,8 +568,17 @@ const NaverMap: React.FC<NaverMapProps> = ({
 
   // 마커 업데이트
   useEffect(() => {
+    console.log('[NaverMap] 마커/경로 useEffect 실행:', {
+      isInitialized: isInitializedRef.current,
+      hasMapInstance: !!mapInstanceRef.current,
+      hasNaver: !!(window.naver && window.naver.maps),
+      startLocation,
+      endLocation,
+      routePointsCount: routePoints?.length || 0
+    });
+
     if (!isInitializedRef.current || !mapInstanceRef.current || !window.naver || !window.naver.maps) {
-      console.log('[NaverMap] 지도가 아직 초기화되지 않음:', {
+      console.log('[NaverMap] 지도가 아직 초기화되지 않음 - 마커 그리기 스킵:', {
         isInitialized: isInitializedRef.current,
         mapInstance: !!mapInstanceRef.current,
         naver: !!window.naver,
