@@ -18,6 +18,8 @@ export interface RouteInfo {
   endLocation: { lat: number; lng: number; name: string };
   routePoints?: [number, number][]; // 백엔드에서 받은 원본 경로 좌표
   distanceM?: number; // 미터 단위 거리
+  riskFactors?: string[]; // 회피 실패한 장애물 타입 목록
+  avoidedFinal?: string[]; // 최종적으로 회피한 장애물 타입 목록
 }
 
 interface RouteCalculatorProps {
@@ -209,7 +211,9 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({
       startLocation: startLoc,
       endLocation: endLoc,
       routePoints: route, // 백엔드에서 받은 원본 경로 좌표
-      distanceM: distanceM // 미터 단위 거리
+      distanceM: distanceM, // 미터 단위 거리
+      riskFactors: backendData.risk_factors || [], // 회피 실패한 장애물 타입
+      avoidedFinal: backendData.avoided_final || [] // 최종적으로 회피한 장애물 타입
     };
   };
 

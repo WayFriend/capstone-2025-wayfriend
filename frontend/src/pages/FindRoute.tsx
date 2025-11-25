@@ -136,6 +136,11 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
     ramp: '경사로'
   };
 
+  // 장애물 타입을 한글로 변환 (영문 타입도 처리)
+  const getObstacleLabel = (type: string): string => {
+    return obstacleLabels[type as ObstacleType] || type;
+  };
+
   // 저장된 경로 로드
   useEffect(() => {
     if (!savedRoute) {
@@ -363,7 +368,7 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
           {routeInfo && (
             <div className="mb-6">
               <div className="p-4 bg-gray-50 rounded-lg mb-3">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center mb-4">
                   <div>
                     <p className="text-sm text-gray-600">예상 시간</p>
                     <p className="text-lg font-bold text-gray-900">{routeInfo.totalDuration}</p>
@@ -373,6 +378,109 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
                     <p className="text-lg font-bold text-gray-900">{routeInfo.totalDistance}</p>
                   </div>
                 </div>
+
+                {/* 장애물 회피 정보 */}
+                {selectedObstacles.size > 0 ? (
+                  <div className="border-t border-gray-200 pt-4 mt-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-3">장애물 회피 현황</h4>
+
+                    {/* 전체 통계 */}
+                    {(() => {
+                      const totalSelected = selectedObstacles.size;
+                      const successCount = routeInfo.avoidedFinal?.length || 0;
+                      const failedCount = routeInfo.riskFactors?.length || 0;
+                      const successRate = totalSelected > 0 ? Math.round((successCount / totalSelected) * 100) : 0;
+
+                      return (
+                        <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-700">전체 선택</span>
+                            <span className="text-sm font-bold text-gray-900">{totalSelected}개</span>
+                          </div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-green-700">회피 성공</span>
+                            <span className="text-sm font-bold text-green-700">{successCount}개</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-red-700">회피 실패</span>
+                            <span className="text-sm font-bold text-red-700">{failedCount}개</span>
+                          </div>
+                          {totalSelected > 0 && (
+                            <div className="mt-3 pt-3 border-t border-blue-200">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-gray-600">회피 성공률</span>
+                                <span className="text-sm font-bold text-blue-700">{successRate}%</span>
+                              </div>
+                              <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                                <div
+                                  className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                                  style={{ width: `${successRate}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* 회피 성공한 장애물 */}
+                    {routeInfo.avoidedFinal && routeInfo.avoidedFinal.length > 0 && (
+                      <div className="mb-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                          <p className="text-xs font-medium text-green-700">
+                            회피 성공 ({routeInfo.avoidedFinal.length}개)
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {routeInfo.avoidedFinal.map((type, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-md"
+                            >
+                              {getObstacleLabel(type)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 회피 실패한 장애물 */}
+                    {routeInfo.riskFactors && routeInfo.riskFactors.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                          </svg>
+                          <p className="text-xs font-medium text-red-700">
+                            회피 실패 ({routeInfo.riskFactors.length}개)
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {routeInfo.riskFactors.map((type, idx) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-1 bg-red-100 text-red-800 text-xs font-medium rounded-md"
+                            >
+                              {getObstacleLabel(type)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="border-t border-gray-200 pt-4 mt-4">
+                    <div className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      <p className="text-xs text-gray-600">회피할 장애물을 선택하지 않았습니다.</p>
+                    </div>
+                  </div>
+                )}
               </div>
               {/* 경로 저장 버튼 */}
               <button
