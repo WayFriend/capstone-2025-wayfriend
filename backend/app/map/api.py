@@ -5,7 +5,7 @@ from fastapi.responses import Response
 import httpx
 import os
 import math
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from pyproj import Transformer
@@ -74,9 +74,6 @@ class StaticMapRequest(BaseModel):
     zoom: int
     width: int
     height: int
-    route_points: Optional[List[List[float]]] = None  # 경로 좌표 리스트 [[lat, lng], ...]
-    start_point: Optional[Dict[str, float]] = None  # 출발지 좌표
-    end_point: Optional[Dict[str, float]] = None  # 도착지 좌표
 
 class ReverseGeocodeRequest(BaseModel):
     lat: float
@@ -607,61 +604,9 @@ def get_warning_for_step(instruction: str) -> str:
     else:
         return ""
 
-def calculate_bounds(route_points: List[List[float]]) -> Dict[str, float]:
-    """경로 좌표들의 경계(bounds) 계산"""
-    if not route_points:
-        return {"min_lat": 0, "max_lat": 0, "min_lng": 0, "max_lng": 0}
-
-    lats = [point[0] for point in route_points]
-    lngs = [point[1] for point in route_points]
-
-    return {
-        "min_lat": min(lats),
-        "max_lat": max(lats),
-        "min_lng": min(lngs),
-        "max_lng": max(lngs)
-    }
-
-def calculate_center_and_zoom(bounds: Dict[str, float], width: int, height: int) -> tuple:
-    """경계를 기반으로 중심점과 줌 레벨 계산"""
-    center_lat = (bounds["min_lat"] + bounds["max_lat"]) / 2
-    center_lng = (bounds["min_lng"] + bounds["max_lng"]) / 2
-
-    # 경계의 크기 계산
-    lat_diff = bounds["max_lat"] - bounds["min_lat"]
-    lng_diff = bounds["max_lng"] - bounds["min_lng"]
-
-    # 줌 레벨 계산 (간단한 방법)
-    max_diff = max(lat_diff, lng_diff)
-    if max_diff > 0.1:
-        zoom = 10
-    elif max_diff > 0.05:
-        zoom = 12
-    elif max_diff > 0.01:
-        zoom = 14
-    elif max_diff > 0.005:
-        zoom = 15
-    else:
-        zoom = 16
-
-    return {"lat": center_lat, "lng": center_lng}, zoom
-
-def encode_polyline(points: List[List[float]]) -> str:
-    """경로 좌표를 polyline 인코딩 (간단한 버전)"""
-    if not points:
-        return ""
-
-    # 네이버 Static Map API는 좌표를 직접 전달하는 방식을 사용할 수 있음
-    # 여기서는 간단하게 좌표를 문자열로 변환
-    coords = []
-    for point in points:
-        coords.append(f"{point[1]},{point[0]}")  # lng,lat 순서
-
-    return "|".join(coords)
-
 @router.post("/api/static-map")
 async def get_static_map(request: StaticMapRequest):
-    """Static Map 이미지 생성 (경로 포함 가능)"""
+    """Static Map 이미지 생성"""
     print(f"[DEBUG] Static Map request: {request}")
 
     if not NAVER_APIGW_KEY_ID:
@@ -669,28 +614,15 @@ async def get_static_map(request: StaticMapRequest):
         return await generate_placeholder_map(request)
 
     try:
-        # 경로 좌표가 있으면 경계 계산하여 중심점과 줌 조정
-        center = request.center
-        zoom = request.zoom
-
-        if request.route_points and len(request.route_points) > 0:
-            bounds = calculate_bounds(request.route_points)
-            center, zoom = calculate_center_and_zoom(bounds, request.width, request.height)
-            print(f"[DEBUG] Calculated center: {center}, zoom: {zoom}")
-
         async with httpx.AsyncClient() as client:
             url = "https://maps.apigw.ntruss.com/map-static/v2/raster"
             params = {
                 "w": request.width,
                 "h": request.height,
-                "center": f"{center['lng']},{center['lat']}",
-                "level": zoom,
+                "center": f"{request.center['lng']},{request.center['lat']}",
+                "level": request.zoom,
                 "format": "png"
             }
-
-            # 네이버 Static Map API v2는 path와 markers를 직접 지원하지 않음
-            # 대신 중심점과 줌 레벨만 사용하여 경로가 보이도록 설정
-            # (향후 네이버 지도 JS SDK를 사용한 서버 사이드 렌더링으로 개선 가능)
 
             print(f"[DEBUG] Naver Static Map API call: {url}")
             print(f"[DEBUG] Request params: {params}")
@@ -757,59 +689,10 @@ async def reverse_geocode(request: ReverseGeocodeRequest):
             response.raise_for_status()
 
             data = response.json()
-            print(f"[DEBUG] 역지오코딩 응답: {data}")
             if "results" in data and len(data["results"]) > 0:
                 result = data["results"][0]
-                # 네이버 역지오코딩 API 응답 구조에 따라 주소 추출
-                address = None
-
-                # formatted_address가 있으면 사용
-                if "formatted_address" in result:
-                    address = result["formatted_address"]
-                    print(f"[DEBUG] formatted_address 사용: {address}")
-
-                # region 정보로 주소 구성
-                if not address and "region" in result:
-                    region = result["region"]
-                    area1 = region.get("area1", {}).get("name", "")
-                    area2 = region.get("area2", {}).get("name", "")
-                    area3 = region.get("area3", {}).get("name", "")
-                    area4 = region.get("area4", {}).get("name", "")
-
-                    # 주소 조합 (공백으로 구분)
-                    address_parts = [area1, area2, area3, area4]
-                    address = " ".join([part for part in address_parts if part and part.strip()])
-
-                    # land 정보 추가 (지번 주소)
-                    if "land" in result and result["land"]:
-                        land = result["land"]
-                        number1 = land.get("number1", "")
-                        number2 = land.get("number2", "")
-                        if number1:
-                            if number2:
-                                address = f"{address} {number1}-{number2}"
-                            else:
-                                address = f"{address} {number1}"
-
-                    print(f"[DEBUG] region으로 주소 구성: {address}")
-
-                # land (지번 주소) 또는 road (도로명 주소) 사용
-                if not address:
-                    if "land" in result:
-                        land = result["land"]
-                        address = land.get("name", "") or land.get("number1", "")
-                    elif "road" in result:
-                        road = result["road"]
-                        address = road.get("name", "")
-
-                if address:
-                    print(f"[DEBUG] 추출된 주소: {address}")
-                    return {"address": address}
-                else:
-                    print(f"[WARN] 주소를 추출할 수 없음: {result}")
-                    return {"address": "주소를 찾을 수 없습니다."}
+                return {"address": result.get("formatted_address", "주소를 찾을 수 없습니다.")}
             else:
-                print(f"[WARN] 역지오코딩 결과 없음: {data}")
                 return {"address": "주소를 찾을 수 없습니다."}
 
     except httpx.HTTPStatusError as e:
