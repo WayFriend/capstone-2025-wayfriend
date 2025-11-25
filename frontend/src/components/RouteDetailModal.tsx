@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { RouteStep } from './RouteCalculator';
-import { getStaticMapImage } from '../utils/naverMapApi';
+import NaverMap from './NaverMap';
 
 interface RouteDetailModalProps {
   route: {
@@ -92,34 +92,16 @@ const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
   onViewRoute,
   onDelete
 }) => {
-  const [mapImageUrl, setMapImageUrl] = useState<string>(route.imageUrl || '');
-
-  // 지도 이미지가 없으면 생성
-  useEffect(() => {
-    if (!mapImageUrl && route.routePoints && route.routePoints.length > 0 && route.startLocation && route.endLocation) {
-      const generateMapImage = async () => {
-        try {
-          const center = {
-            lat: (route.startLocation!.lat + route.endLocation!.lat) / 2,
-            lng: (route.startLocation!.lng + route.endLocation!.lng) / 2
-          };
-          const imageUrl = await getStaticMapImage(
-            center,
-            15,
-            800,
-            400,
-            route.routePoints,
-            { lat: route.startLocation!.lat, lng: route.startLocation!.lng },
-            { lat: route.endLocation!.lat, lng: route.endLocation!.lng }
-          );
-          setMapImageUrl(imageUrl);
-        } catch (err) {
-          console.error('지도 이미지 생성 실패:', err);
-        }
+  // 지도 중심점 계산
+  const mapCenter = useMemo(() => {
+    if (route.startLocation && route.endLocation) {
+      return {
+        lat: (route.startLocation.lat + route.endLocation.lat) / 2,
+        lng: (route.startLocation.lng + route.endLocation.lng) / 2
       };
-      generateMapImage();
     }
-  }, [mapImageUrl, route.routePoints, route.startLocation, route.endLocation]);
+    return { lat: 37.5665, lng: 126.9780 };
+  }, [route.startLocation, route.endLocation]);
 
   // 저장된 경로의 실제 데이터로부터 경로 정보 계산
   const routeInfo = useMemo(() => {
@@ -253,23 +235,18 @@ const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
 
         {/* 본문 - 스크롤 가능 */}
         <div className="flex-1 overflow-y-auto">
-          {/* 지도 이미지 */}
-          <div className="w-full h-64 bg-gray-100 relative flex items-center justify-center">
-            {mapImageUrl ? (
-              <img
-                src={mapImageUrl}
-                alt={route.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="text-gray-400 text-center">
-                <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                <p className="text-sm">지도 이미지 로딩 중...</p>
-              </div>
-            )}
-            <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-md text-sm font-medium text-gray-700">
+          {/* 지도 (경로 오버레이 포함) */}
+          <div className="w-full h-64 bg-gray-100 relative">
+            <NaverMap
+              width="100%"
+              height="100%"
+              center={mapCenter}
+              zoom={15}
+              startLocation={route.startLocation || undefined}
+              endLocation={route.endLocation || undefined}
+              routePoints={route.routePoints}
+            />
+            <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-md text-sm font-medium text-gray-700 z-10">
               저장일: {route.savedDate}
             </div>
           </div>
