@@ -57,7 +57,7 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({
       console.log('🗺️ 경로 계산 시작:', { startLocation, endLocation, mode, filter, avoidObstacles });
 
       // 백엔드 API 호출
-      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://34.239.248.132:8000';
       const token = getToken();
 
       // 장애물 타입을 백엔드 형식으로 변환
