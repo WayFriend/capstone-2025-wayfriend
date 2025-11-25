@@ -98,3 +98,36 @@ def delete_route(
         return {"ok": False, "message": "해당 경로를 찾을 수 없거나 삭제 권한이 없습니다."}
 
     return {"ok": True, "message": "경로가 삭제되었습니다."}
+
+
+# 장애물 조회 (지도 영역 내)
+@router.get("/obstacles")
+def get_obstacles_in_bounds(
+    south: float,
+    north: float,
+    west: float,
+    east: float,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """지도 영역 내의 장애물 조회"""
+    from app.route.models import Obstacle
+
+    obstacles = (
+        db.query(Obstacle)
+        .filter(Obstacle.lat >= south, Obstacle.lat <= north)
+        .filter(Obstacle.lng >= west, Obstacle.lng <= east)
+        .all()
+    )
+
+    return [
+        {
+            "id": obs.id,
+            "type": obs.type,
+            "lat": obs.lat,
+            "lng": obs.lng,
+            "confidence": obs.confidence,
+            "detected_at": obs.detected_at.isoformat() if obs.detected_at else None
+        }
+        for obs in obstacles
+    ]
