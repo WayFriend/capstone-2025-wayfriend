@@ -118,7 +118,7 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
       const convertedRoutesPromises = backendRoutes.map(async (route: any) => {
         try {
           // 좌표를 주소로 변환 (병렬 처리)
-          const [startAddress, endAddress] = await Promise.all([
+          const [startAddressRaw, endAddressRaw] = await Promise.all([
             reverseGeocode(route.start_lat, route.start_lng).catch(() =>
               `${route.start_lat.toFixed(4)}, ${route.start_lng.toFixed(4)}`
             ),
@@ -126,6 +126,14 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
               `${route.end_lat.toFixed(4)}, ${route.end_lng.toFixed(4)}`
             )
           ]);
+
+          // "주소를 찾을 수 없습니다"인 경우 좌표로 대체
+          const startAddress = startAddressRaw === "주소를 찾을 수 없습니다." 
+            ? `${route.start_lat.toFixed(4)}, ${route.start_lng.toFixed(4)}`
+            : startAddressRaw;
+          const endAddress = endAddressRaw === "주소를 찾을 수 없습니다."
+            ? `${route.end_lat.toFixed(4)}, ${route.end_lng.toFixed(4)}`
+            : endAddressRaw;
 
           return {
             id: route.id,
