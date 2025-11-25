@@ -259,11 +259,24 @@ const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
                 endLocation={route.endLocation}
                 routePoints={route.routePoints}
                 onMapLoad={(map) => {
+                  console.log('[RouteDetailModal] onMapLoad 호출됨:', {
+                    startLocation: route.startLocation,
+                    endLocation: route.endLocation,
+                    routePointsCount: route.routePoints?.length || 0
+                  });
+
                   // 지도가 로드된 후 리사이즈하여 마커/경로가 보이도록 함
                   setTimeout(() => {
-                    if (window.naver && window.naver.maps) {
+                    if (window.naver && window.naver.maps && map) {
+                      // 모달 내부 지도가 제대로 렌더링되도록 리사이즈 트리거
                       window.naver.maps.Event.trigger(map, 'resize');
                       console.log('[RouteDetailModal] 지도 로드 완료, 리사이즈 트리거');
+
+                      // 추가로 약간의 지연 후 다시 리사이즈 (모달 애니메이션 완료 후)
+                      setTimeout(() => {
+                        window.naver.maps.Event.trigger(map, 'resize');
+                        console.log('[RouteDetailModal] 지도 리사이즈 재트리거 (모달 애니메이션 후)');
+                      }, 300);
                     }
                   }, 200);
                 }}
