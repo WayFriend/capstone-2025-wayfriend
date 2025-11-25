@@ -15,7 +15,6 @@ router = APIRouter()
 # 1) 경로 계산 (DB 저장 없음)
 @router.post(
     "/find",
-    response_model=schemas.RouteResponse,
     summary="경로 계산 (개별 장애물 성공/실패 분석 v3)"
 )
 def find_route(
@@ -23,6 +22,7 @@ def find_route(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
+    # response_model 없이 직접 반환하여 obstacle_stats 포함 가능
     return service.find_path_from_request(
         req=request,
         db=db,

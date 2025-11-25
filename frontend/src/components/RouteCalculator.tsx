@@ -20,6 +20,7 @@ export interface RouteInfo {
   distanceM?: number; // 미터 단위 거리
   riskFactors?: string[]; // 회피 실패한 장애물 타입 목록
   avoidedFinal?: string[]; // 최종적으로 회피한 장애물 타입 목록
+  obstacleStats?: Record<string, { total: number; success: number; failed: number }>; // 타입별 장애물 통계
 }
 
 interface RouteCalculatorProps {
@@ -132,6 +133,7 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({
       distance_m: number;
       risk_factors: string[];
       avoided_final: string[];
+      obstacle_stats?: Record<string, { total: number; success: number; failed: number }>;
     },
     startLoc: { lat: number; lng: number; name: string },
     endLoc: { lat: number; lng: number; name: string },
@@ -213,7 +215,8 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({
       routePoints: route, // 백엔드에서 받은 원본 경로 좌표
       distanceM: distanceM, // 미터 단위 거리
       riskFactors: backendData.risk_factors || [], // 회피 실패한 장애물 타입
-      avoidedFinal: backendData.avoided_final || [] // 최종적으로 회피한 장애물 타입
+      avoidedFinal: backendData.avoided_final || [], // 최종적으로 회피한 장애물 타입
+      obstacleStats: backendData.obstacle_stats || {} // 타입별 장애물 통계
     };
   };
 
