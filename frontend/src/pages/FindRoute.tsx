@@ -57,7 +57,7 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
     }
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://34.239.248.132:8000';
       const token = getToken();
 
       // routeInfo에서 route_points와 distance_m 추출

@@ -1,6 +1,6 @@
 // 인증 API 서비스
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://34.239.248.132:8000';
 
 export interface SignupRequest {
   email: string;
