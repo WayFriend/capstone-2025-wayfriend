@@ -606,6 +606,7 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
           startLocation={fromLocation}
           endLocation={toLocation}
           routePoints={routeInfo?.routePoints}
+          showObstacles={true}
           onMapLoad={(map) => {
             console.log('네이버 지도가 로드되었습니다:', map);
           }}

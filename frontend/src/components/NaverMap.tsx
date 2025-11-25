@@ -7,6 +7,15 @@ declare global {
   }
 }
 
+interface Obstacle {
+  id: number;
+  type: string;
+  lat: number;
+  lng: number;
+  confidence?: number;
+  detected_at?: string;
+}
+
 interface NaverMapProps {
   width?: string;
   height?: string;
@@ -15,6 +24,7 @@ interface NaverMapProps {
   startLocation?: { lat: number; lng: number; name: string } | null;
   endLocation?: { lat: number; lng: number; name: string } | null;
   routePoints?: [number, number][]; // 경로 좌표 배열 [lat, lng][]
+  showObstacles?: boolean; // 장애물 표시 여부
   onMapLoad?: (map: any) => void;
   onMapClick?: (lat: number, lng: number) => void;
   onMapIdle?: (center: { lat: number; lng: number }, zoom: number) => void;
@@ -28,6 +38,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
   startLocation,
   endLocation,
   routePoints,
+  showObstacles = true, // 기본적으로 장애물 표시
   onMapLoad,
   onMapClick,
   onMapIdle,
@@ -36,10 +47,12 @@ const NaverMap: React.FC<NaverMapProps> = ({
   const mapInstanceRef = useRef<any>(null);
   const isInitializedRef = useRef(false);
   const markersRef = useRef<any[]>([]);
+  const obstacleMarkersRef = useRef<any[]>([]); // 장애물 마커
   const polylineRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [naverClientId, setNaverClientId] = useState<string | null>(null);
+  const [obstacles, setObstacles] = useState<Obstacle[]>([]);
 
   useEffect(() => {
     const loadNaverMapSdk = async () => {
@@ -757,6 +770,150 @@ const NaverMap: React.FC<NaverMapProps> = ({
       }
     };
   }, [startLocation, endLocation, routePoints]);
+
+  // 장애물 타입별 아이콘 및 색상
+  const getObstacleIcon = (type: string) => {
+    const iconConfig: Record<string, { color: string; emoji: string }> = {
+      stairs: { color: '#DC2626', emoji: '🪜' },
+      curb: { color: '#F59E0B', emoji: '⬛' },
+      crosswalk: { color: '#3B82F6', emoji: '🚶' },
+      bollard: { color: '#8B5CF6', emoji: '🚧' },
+      ramp: { color: '#10B981', emoji: '♿' },
+    };
+
+    const config = iconConfig[type] || { color: '#6B7280', emoji: '⚠️' };
+
+    return `
+      <div style="
+        background-color: ${config.color};
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+      ">${config.emoji}</div>
+    `;
+  };
+
+  // 장애물 타입 한글 변환
+  const getObstacleLabel = (type: string): string => {
+    const labels: Record<string, string> = {
+      stairs: '계단',
+      curb: '턱',
+      crosswalk: '횡단보도',
+      bollard: '볼라드',
+      ramp: '경사로',
+    };
+    return labels[type] || type;
+  };
+
+  // 지도 영역 내 장애물 조회
+  useEffect(() => {
+    if (!showObstacles || !isInitializedRef.current || !mapInstanceRef.current || !window.naver) {
+      return;
+    }
+
+    const fetchObstacles = async () => {
+      try {
+        const bounds = mapInstanceRef.current.getBounds();
+        const sw = bounds.getSW(); // 남서쪽
+        const ne = bounds.getNE(); // 북동쪽
+
+        const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://34.239.248.132:8000';
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+        const response = await fetch(
+          `${apiUrl}/route/obstacles?south=${sw.lat()}&north=${ne.lat()}&west=${sw.lng()}&east=${ne.lng()}`,
+          {
+            headers: {
+              ...(token && { Authorization: `Bearer ${token}` })
+            }
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setObstacles(data);
+        }
+      } catch (err) {
+        console.error('[NaverMap] 장애물 조회 실패:', err);
+      }
+    };
+
+    // 지도 이동/줌 완료 시 장애물 조회
+    const handleIdle = () => {
+      fetchObstacles();
+    };
+
+    window.naver.maps.Event.addListener(mapInstanceRef.current, 'idle', handleIdle);
+
+    // 초기 로드 시에도 조회
+    fetchObstacles();
+
+    return () => {
+      if (mapInstanceRef.current) {
+        window.naver.maps.Event.removeListener(mapInstanceRef.current, 'idle', handleIdle);
+      }
+    };
+  }, [showObstacles, isInitializedRef.current]);
+
+  // 장애물 마커 표시
+  useEffect(() => {
+    if (!showObstacles || !isInitializedRef.current || !mapInstanceRef.current || !window.naver || obstacles.length === 0) {
+      // 기존 장애물 마커 제거
+      obstacleMarkersRef.current.forEach(marker => {
+        marker.setMap(null);
+      });
+      obstacleMarkersRef.current = [];
+      return;
+    }
+
+    // 기존 장애물 마커 제거
+    obstacleMarkersRef.current.forEach(marker => {
+      marker.setMap(null);
+    });
+    obstacleMarkersRef.current = [];
+
+    // 장애물 마커 추가
+    obstacles.forEach(obstacle => {
+      const marker = new window.naver.maps.Marker({
+        position: new window.naver.maps.LatLng(obstacle.lat, obstacle.lng),
+        map: mapInstanceRef.current,
+        icon: {
+          content: getObstacleIcon(obstacle.type),
+          anchor: new window.naver.maps.Point(14, 14)
+        },
+        title: `${getObstacleLabel(obstacle.type)}${obstacle.confidence ? ` (${Math.round(obstacle.confidence * 100)}%)` : ''}`
+      });
+
+      // 정보창 추가
+      const infoWindow = new window.naver.maps.InfoWindow({
+        content: `
+          <div style="padding: 8px; font-size: 14px;">
+            <div style="font-weight: bold; margin-bottom: 4px;">${getObstacleLabel(obstacle.type)}</div>
+            ${obstacle.confidence ? `<div style="color: #666; font-size: 12px;">신뢰도: ${Math.round(obstacle.confidence * 100)}%</div>` : ''}
+          </div>
+        `
+      });
+
+      window.naver.maps.Event.addListener(marker, 'click', () => {
+        infoWindow.open(mapInstanceRef.current, marker);
+      });
+
+      obstacleMarkersRef.current.push(marker);
+    });
+
+    return () => {
+      obstacleMarkersRef.current.forEach(marker => {
+        marker.setMap(null);
+      });
+      obstacleMarkersRef.current = [];
+    };
+  }, [obstacles, showObstacles, isInitializedRef.current]);
 
   // 윈도우 리사이즈 시 지도 리사이즈
   useEffect(() => {
