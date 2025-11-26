@@ -7,12 +7,28 @@ RUN apt-get update && apt-get install -y \
     gcc \
     libffi-dev \
     libpq-dev \
-    libgl1-mesa-glx \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
     libxrender-dev \
     && rm -rf /var/lib/apt/lists/*
+
+# libGL.so.1 더미 라이브러리 생성 (OpenCV headless 환경에서 필요)
+# Debian Trixie에서는 libgl1-mesa-glx가 제거되어 더미 라이브러리 사용
+# OpenCV가 필요로 하는 주요 함수들을 포함한 더미 라이브러리 생성
+RUN mkdir -p /usr/lib/x86_64-linux-gnu && \
+    printf '%s\n' \
+        '/* Dummy libGL.so.1 for OpenCV headless */' \
+        '#include <stdlib.h>' \
+        'void* glXGetProcAddressARB(const char* name) { return NULL; }' \
+        'void* glXGetProcAddress(const char* name) { return NULL; }' \
+        'int glXMakeCurrent(void* dpy, void* drawable, void* ctx) { return 0; }' \
+        'void* glXGetCurrentContext(void) { return NULL; }' \
+        'int glXSwapBuffers(void* dpy, void* drawable) { return 0; }' \
+        > /tmp/dummy_gl.c && \
+    gcc -shared -fPIC -Wl,-soname,libGL.so.1 -o /usr/lib/x86_64-linux-gnu/libGL.so.1 /tmp/dummy_gl.c -lm && \
+    rm -f /tmp/dummy_gl.c && \
+    echo "libGL.so.1 dummy library created successfully"
 
 # 작업 디렉토리
 WORKDIR /app
@@ -30,6 +46,9 @@ COPY ./backend ./backend
 ENV PYTHONUNBUFFERED=1
 ENV TZ=Asia/Seoul
 ENV PYTHONPATH=/app/backend
+# OpenCV headless 환경 설정 (libGL 우회)
+ENV QT_QPA_PLATFORM=offscreen
+ENV DISPLAY=:99
 
 # 포트 노출
 EXPOSE 8000
