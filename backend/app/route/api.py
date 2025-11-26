@@ -131,7 +131,7 @@ def delete_route(
     return {"ok": True, "message": "경로가 삭제되었습니다."}
 
 
-# 장애물 조회 (지도 영역 내)
+# 장애물 조회 (지도 영역 내) - 공개 데이터이므로 인증 불필요
 @router.get("/obstacles")
 def get_obstacles_in_bounds(
     south: float,
@@ -139,9 +139,8 @@ def get_obstacles_in_bounds(
     west: float,
     east: float,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user),
 ):
-    """지도 영역 내의 장애물 조회"""
+    """지도 영역 내의 장애물 조회 (공개 데이터, 인증 불필요)"""
     from app.route.models import Obstacle
 
     obstacles = (
