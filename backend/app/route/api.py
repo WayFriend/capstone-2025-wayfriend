@@ -8,6 +8,7 @@ from app.database import get_db
 from app.auth.utils import get_current_user
 from app.route import schemas
 from app.route import service
+from app.route.detect_service import detect_folder_and_save
 
 router = APIRouter()
 
@@ -131,3 +132,28 @@ def get_obstacles_in_bounds(
         }
         for obs in obstacles
     ]
+
+
+# 이미지 추론 실행 (관리자용)
+@router.post("/detect")
+def run_detection(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    images 폴더의 모든 이미지를 YOLO로 추론하여 장애물 데이터를 DB에 저장
+    """
+    try:
+        result = detect_folder_and_save(db)
+        return {
+            "ok": True,
+            "message": "이미지 추론 완료",
+            "total_images": result["total"],
+            "processed_images": result["processed"],
+            "total_obstacles_saved": result["saved"]
+        }
+    except Exception as e:
+        return {
+            "ok": False,
+            "message": f"이미지 추론 실패: {str(e)}"
+        }
