@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { RouteStep } from './RouteCalculator';
-import { getStaticMapImage } from '../utils/naverMapApi';
+import NaverMap from './NaverMap';
 
 interface RouteDetailModalProps {
   route: {
@@ -92,34 +92,27 @@ const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
   onViewRoute,
   onDelete
 }) => {
-  const [mapImageUrl, setMapImageUrl] = useState<string>(route.imageUrl || '');
+  const [mapKey, setMapKey] = useState(0);
 
-  // 지도 이미지가 없으면 생성
+  // 모달이 열릴 때 지도 재초기화
   useEffect(() => {
-    if (!mapImageUrl && route.routePoints && route.routePoints.length > 0 && route.startLocation && route.endLocation) {
-      const generateMapImage = async () => {
-        try {
-          const center = {
-            lat: (route.startLocation!.lat + route.endLocation!.lat) / 2,
-            lng: (route.startLocation!.lng + route.endLocation!.lng) / 2
-          };
-          const imageUrl = await getStaticMapImage(
-            center,
-            15,
-            800,
-            400,
-            route.routePoints,
-            { lat: route.startLocation!.lat, lng: route.startLocation!.lng },
-            { lat: route.endLocation!.lat, lng: route.endLocation!.lng }
-          );
-          setMapImageUrl(imageUrl);
-        } catch (err) {
-          console.error('지도 이미지 생성 실패:', err);
-        }
+    // 모달이 열린 후 약간의 지연을 두고 지도를 재초기화
+    const timer = setTimeout(() => {
+      setMapKey(prev => prev + 1);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [route.id]);
+
+  // 지도 중심점 계산
+  const mapCenter = useMemo(() => {
+    if (route.startLocation && route.endLocation) {
+      return {
+        lat: (route.startLocation.lat + route.endLocation.lat) / 2,
+        lng: (route.startLocation.lng + route.endLocation.lng) / 2
       };
-      generateMapImage();
     }
-  }, [mapImageUrl, route.routePoints, route.startLocation, route.endLocation]);
+    return { lat: 37.5665, lng: 126.9780 };
+  }, [route.startLocation, route.endLocation]);
 
   // 저장된 경로의 실제 데이터로부터 경로 정보 계산
   const routeInfo = useMemo(() => {
@@ -253,23 +246,55 @@ const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
 
         {/* 본문 - 스크롤 가능 */}
         <div className="flex-1 overflow-y-auto">
-          {/* 지도 이미지 */}
-          <div className="w-full h-64 bg-gray-100 relative flex items-center justify-center">
-            {mapImageUrl ? (
-              <img
-                src={mapImageUrl}
-                alt={route.title}
-                className="w-full h-full object-cover"
+          {/* 지도 (경로 오버레이 포함) */}
+          <div className="w-full h-64 bg-gray-100 relative">
+            {route.startLocation && route.endLocation ? (
+              <NaverMap
+                key={`map-${route.id}-${mapKey}`}
+                width="100%"
+                height="100%"
+                center={mapCenter}
+                zoom={15}
+                startLocation={route.startLocation}
+                endLocation={route.endLocation}
+                routePoints={route.routePoints}
+                onMapLoad={(map) => {
+                  console.log('[RouteDetailModal] onMapLoad 호출됨:', {
+                    startLocation: route.startLocation,
+                    endLocation: route.endLocation,
+                    routePointsCount: route.routePoints?.length || 0
+                  });
+
+                  // 지도가 로드된 후 리사이즈하여 마커/경로가 보이도록 함
+                  setTimeout(() => {
+                    if (window.naver && window.naver.maps && map) {
+                      // 모달 내부 지도가 제대로 렌더링되도록 리사이즈 트리거
+                      window.naver.maps.Event.trigger(map, 'resize');
+                      console.log('[RouteDetailModal] 지도 로드 완료, 리사이즈 트리거');
+
+                      // 추가로 약간의 지연 후 다시 리사이즈 (모달 애니메이션 완료 후)
+                      setTimeout(() => {
+                        window.naver.maps.Event.trigger(map, 'resize');
+                        console.log('[RouteDetailModal] 지도 리사이즈 재트리거 (모달 애니메이션 후)');
+                      }, 300);
+                    }
+                  }, 200);
+                }}
               />
             ) : (
-              <div className="text-gray-400 text-center">
-                <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                </svg>
-                <p className="text-sm">지도 이미지 로딩 중...</p>
+              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                <div className="text-center">
+                  <svg className="w-16 h-16 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  <p className="text-sm">지도 데이터 로딩 중...</p>
+                  <p className="text-xs mt-2">출발지: {route.startLocation ? '있음' : '없음'}</p>
+                  <p className="text-xs">도착지: {route.endLocation ? '있음' : '없음'}</p>
+                  <p className="text-xs">경로: {route.routePoints?.length || 0}개 좌표</p>
+                </div>
               </div>
             )}
-            <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-md text-sm font-medium text-gray-700">
+            <div className="absolute top-4 right-4 bg-white px-3 py-1 rounded-full shadow-md text-sm font-medium text-gray-700 z-10">
               저장일: {route.savedDate}
             </div>
           </div>
@@ -394,4 +419,3 @@ const RouteDetailModal: React.FC<RouteDetailModalProps> = ({
 };
 
 export default RouteDetailModal;
-
