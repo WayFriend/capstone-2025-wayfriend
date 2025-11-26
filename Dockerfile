@@ -37,7 +37,8 @@ WORKDIR /app
 COPY requirements.txt .
 
 # 파이썬 패키지 설치
-RUN pip install --no-cache-dir -r requirements.txt
+# PyTorch CPU 버전을 위한 extra-index-url 추가
+RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/whl/cpu -r requirements.txt
 
 # 백엔드 코드 복사
 COPY ./backend ./backend
