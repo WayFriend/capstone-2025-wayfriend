@@ -52,20 +52,51 @@ def get_gps_from_image(img_path):
         if not exif_data:
             return None
 
+        # GPSInfo 태그 ID는 34853
+        GPS_INFO_TAG = 34853
+        
         gps_info = {}
-        # getexif()는 dict-like 객체를 반환하므로 처리 방식이 다를 수 있음
-        for key, val in exif_data.items():
-            tag_name = TAGS.get(key, key)
-            if tag_name == "GPSInfo":
-                if hasattr(val, 'items'):  # dict-like 객체
-                    for t, v in val.items():
-                        gps_tag = GPSTAGS.get(t, t)
-                        gps_info[gps_tag] = v
-                else:  # 기존 방식 (tuple/dict)
-                    for t in val:
-                        gps_info[GPSTAGS.get(t)] = val[t]
+        gps_ifd = None
+        
+        # GPSInfo 추출 시도 (여러 방법 시도)
+        try:
+            # 방법 1: 직접 태그 ID로 접근
+            if GPS_INFO_TAG in exif_data:
+                gps_ifd = exif_data[GPS_INFO_TAG]
+            # 방법 2: items()로 순회
+            elif hasattr(exif_data, 'items'):
+                for key, val in exif_data.items():
+                    tag_name = TAGS.get(key, key)
+                    if tag_name == "GPSInfo" or key == GPS_INFO_TAG:
+                        gps_ifd = val
+                        break
+            # 방법 3: get() 메서드 사용
+            elif hasattr(exif_data, 'get'):
+                gps_ifd = exif_data.get(GPS_INFO_TAG)
+        except Exception as e:
+            print(f"⚠️ GPSInfo 태그 찾기 실패: {e}")
+            return None
+        
+        if gps_ifd is None:
+            return None
+        
+        # GPSInfo 데이터 파싱
+        try:
+            # dict인 경우
+            if isinstance(gps_ifd, dict):
+                for tag_id, value in gps_ifd.items():
+                    tag_name = GPSTAGS.get(tag_id, tag_id)
+                    gps_info[tag_name] = value
+            # dict-like 객체인 경우
+            elif hasattr(gps_ifd, 'items'):
+                for tag_id, value in gps_ifd.items():
+                    tag_name = GPSTAGS.get(tag_id, tag_id)
+                    gps_info[tag_name] = value
+        except Exception as e:
+            print(f"⚠️ GPSInfo 파싱 실패: {e}, type: {type(gps_ifd)}")
+            return None
 
-        if not gps_info:
+        if not gps_info or "GPSLatitude" not in gps_info or "GPSLongitude" not in gps_info:
             return None
     except Exception as e:
         print(f"⚠️ 이미지 로드/EXIF 읽기 실패 ({img_path}): {e}")
