@@ -1,6 +1,7 @@
 # app/route/detect_service.py
 
 import os
+from pathlib import Path
 from ultralytics import YOLO
 from sqlalchemy.orm import Session
 from app.route.models import Obstacle
@@ -8,9 +9,29 @@ from datetime import datetime
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 
-MODEL_PATH = "app/route/model/wayfriend_yolov8.pt"
-IMAGES_DIR = "app/route/images"  # 인천대 이미지
-model = YOLO(MODEL_PATH)
+# 현재 파일의 디렉토리를 기준으로 경로 설정 (도커 컨테이너 내부 경로 고려)
+BASE_DIR = Path(__file__).parent
+MODEL_PATH = str(BASE_DIR / "model" / "wayfriend_yolov8.pt")
+IMAGES_DIR = str(BASE_DIR / "images")  # 인천대 이미지
+
+# 모델은 함수 호출 시 로드 (지연 로딩)
+model = None
+
+def get_model():
+    """모델을 지연 로딩 (필요할 때만 로드)"""
+    global model
+    if model is None:
+        if not os.path.exists(MODEL_PATH):
+            raise FileNotFoundError(
+                f"YOLO 모델 파일을 찾을 수 없습니다: {MODEL_PATH}\n"
+                f"현재 작업 디렉토리: {os.getcwd()}\n"
+                f"파일 기준 디렉토리: {BASE_DIR}"
+            )
+        try:
+            model = YOLO(MODEL_PATH)
+        except Exception as e:
+            raise RuntimeError(f"YOLO 모델 로드 실패: {str(e)}") from e
+    return model
 
 # -------------------------------------------------------------
 # GPS 추출 함수
@@ -53,6 +74,10 @@ def detect_folder_and_save(db: Session):
     폴더 안의 모든 이미지를 YOLO로 추론 후 DB에 저장.
     commit()은 전체 이미지 처리 후 한 번만 실행해 성능 최적화.
     """
+    # 이미지 디렉토리 확인
+    if not os.path.exists(IMAGES_DIR):
+        raise FileNotFoundError(f"이미지 디렉토리를 찾을 수 없습니다: {IMAGES_DIR}")
+    
     count_total, count_success = 0, 0
     total_saved = 0  # 전체 저장된 장애물 개수
 
@@ -68,7 +93,9 @@ def detect_folder_and_save(db: Session):
             print(f"❌ GPS 없음: {filename}")
             continue
 
-        results = model(img_path)
+        # 모델 로드 (지연 로딩)
+        yolo_model = get_model()
+        results = yolo_model(img_path)
         saved = 0
 
         for r in results:
@@ -77,7 +104,7 @@ def detect_folder_and_save(db: Session):
             labels = r.boxes.cls
 
             for i in range(len(boxes)):
-                label = model.names[int(labels[i])]
+                label = yolo_model.names[int(labels[i])]
                 conf = confs[i].item()
 
                 db.add(
