@@ -2,7 +2,6 @@
 
 import os
 from pathlib import Path
-from ultralytics import YOLO
 from sqlalchemy.orm import Session
 from app.route.models import Obstacle
 from datetime import datetime
@@ -18,9 +17,12 @@ IMAGES_DIR = str(BASE_DIR / "images")  # 인천대 이미지
 model = None
 
 def get_model():
-    """모델을 지연 로딩 (필요할 때만 로드)"""
+    """모델을 지연 로딩 (필요할 때만 로드) - YOLO import도 지연"""
     global model
     if model is None:
+        # YOLO import를 함수 내부로 이동하여 서버 시작 시 OpenCV 로드 방지
+        from ultralytics import YOLO
+        
         if not os.path.exists(MODEL_PATH):
             raise FileNotFoundError(
                 f"YOLO 모델 파일을 찾을 수 없습니다: {MODEL_PATH}\n"

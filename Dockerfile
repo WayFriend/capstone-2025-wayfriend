@@ -15,16 +15,35 @@ RUN apt-get update && apt-get install -y \
 
 # libGL.so.1 더미 라이브러리 생성 (OpenCV headless 환경에서 필요)
 # Debian Trixie에서는 libgl1-mesa-glx가 제거되어 더미 라이브러리 사용
-# OpenCV가 필요로 하는 주요 함수들을 포함한 더미 라이브러리 생성
+# OpenCV가 필요로 하는 주요 OpenGL 함수들을 포함한 더미 라이브러리 생성
 RUN mkdir -p /usr/lib/x86_64-linux-gnu && \
     printf '%s\n' \
         '/* Dummy libGL.so.1 for OpenCV headless */' \
         '#include <stdlib.h>' \
+        '/* glX functions */' \
         'void* glXGetProcAddressARB(const char* name) { return NULL; }' \
         'void* glXGetProcAddress(const char* name) { return NULL; }' \
         'int glXMakeCurrent(void* dpy, void* drawable, void* ctx) { return 0; }' \
         'void* glXGetCurrentContext(void) { return NULL; }' \
         'int glXSwapBuffers(void* dpy, void* drawable) { return 0; }' \
+        '/* OpenGL functions */' \
+        'void glMatrixMode(unsigned int mode) {}' \
+        'void glLoadIdentity(void) {}' \
+        'void glPushMatrix(void) {}' \
+        'void glPopMatrix(void) {}' \
+        'void glTranslatef(float x, float y, float z) {}' \
+        'void glRotatef(float angle, float x, float y, float z) {}' \
+        'void glScalef(float x, float y, float z) {}' \
+        'void glBegin(unsigned int mode) {}' \
+        'void glEnd(void) {}' \
+        'void glVertex2f(float x, float y) {}' \
+        'void glVertex3f(float x, float y, float z) {}' \
+        'void glColor3f(float r, float g, float b) {}' \
+        'void glColor4f(float r, float g, float b, float a) {}' \
+        'void glClear(unsigned int mask) {}' \
+        'void glClearColor(float r, float g, float b, float a) {}' \
+        'void glFlush(void) {}' \
+        'void glFinish(void) {}' \
         > /tmp/dummy_gl.c && \
     gcc -shared -fPIC -Wl,-soname,libGL.so.1 -o /usr/lib/x86_64-linux-gnu/libGL.so.1 /tmp/dummy_gl.c -lm && \
     rm -f /tmp/dummy_gl.c && \
