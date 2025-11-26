@@ -1,8 +1,15 @@
 # 베이스 이미지
 FROM python:3.11-slim
 
-# 시스템 패키지 설치 (bcrypt/passlib 빌드용)
-RUN apt-get update && apt-get install -y build-essential gcc libffi-dev libpq-dev && rm -rf /var/lib/apt/lists/*
+# 시스템 패키지 설치 (bcrypt/passlib 빌드용 + OpenCV 의존성)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    libffi-dev \
+    libpq-dev \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
 # 작업 디렉토리
 WORKDIR /app
