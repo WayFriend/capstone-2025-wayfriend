@@ -1,5 +1,6 @@
 # backend/app/route/api.py
 
+import threading
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -12,8 +13,12 @@ from app.route.detect_service import detect_folder_and_save
 
 router = APIRouter()
 
+# 동시성 문제 방지: 이미지 추론 중인지 확인하는 Lock
+_detection_lock = threading.Lock()
+_is_detecting = False
 
-# 1) 경로 계산 (DB 저장 없음)
+
+# 1) 경로 계산 (최초 실행 시 이미지 추론 자동 실행)
 @router.post(
     "/find",
     summary="경로 계산 (개별 장애물 성공/실패 분석 v3)"
@@ -23,7 +28,32 @@ def find_route(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    # response_model 없이 직접 반환하여 obstacle_stats 포함 가능
+    """
+    경로 찾기:
+    1. 최초 실행 시 DB에 장애물이 없으면 이미지 추론 후 DB 저장
+    2. 이후 실행 시에는 DB에 저장된 장애물 데이터 사용
+    3. 사용자가 선택한 장애물 타입을 회피하는 최적 경로 계산
+    """
+    # 최초 경로 찾기 시: DB에 장애물이 없으면 이미지 추론 실행
+    # 동시성 문제 방지: Lock을 사용하여 동시에 여러 요청이 추론을 실행하지 않도록 함
+    global _is_detecting
+    
+    if not service.has_obstacles(db):
+        with _detection_lock:
+            # Lock을 획득한 후 다시 한 번 확인 (다른 스레드가 이미 추론 완료했을 수 있음)
+            if not service.has_obstacles(db) and not _is_detecting:
+                _is_detecting = True
+                print("📸 최초 경로 찾기: 이미지 추론 시작...")
+                try:
+                    detect_folder_and_save(db)
+                    print("✅ 이미지 추론 완료: 장애물 데이터가 DB에 저장되었습니다.")
+                except Exception as e:
+                    print(f"⚠️ 이미지 추론 실패: {str(e)}")
+                    # 추론 실패해도 경로 계산은 진행 (기존 장애물 데이터가 없을 수 있음)
+                finally:
+                    _is_detecting = False
+    
+    # 경로 계산 (DB에 저장된 장애물 데이터 사용)
     return service.find_path_from_request(
         req=request,
         db=db,
