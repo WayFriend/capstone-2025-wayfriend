@@ -1,6 +1,6 @@
 // 백엔드 API를 통한 네이버 지도 서비스
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://34.239.248.132:8000';
+import { API_BASE_URL } from './apiConfig';
 
 // Window 타입 확장
 declare global {
