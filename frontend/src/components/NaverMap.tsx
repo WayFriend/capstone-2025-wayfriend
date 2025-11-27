@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { getNaverClientId } from '../utils/naverMapApi';
-import { API_BASE_URL } from '../utils/apiConfig';
+import { getApiUrl } from '../utils/apiConfig';
 
 declare global {
   interface Window {
@@ -824,11 +824,10 @@ const NaverMap: React.FC<NaverMapProps> = ({
         const sw = bounds.getSW(); // 남서쪽
         const ne = bounds.getNE(); // 북동쪽
 
-        const apiUrl = API_BASE_URL;
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
         const response = await fetch(
-          `${apiUrl}/route/obstacles?south=${sw.lat()}&north=${ne.lat()}&west=${sw.lng()}&east=${ne.lng()}`,
+          `${getApiUrl('/route/obstacles')}?south=${sw.lat()}&north=${ne.lat()}&west=${sw.lng()}&east=${ne.lng()}`,
           {
             headers: {
               ...(token && { Authorization: `Bearer ${token}` })

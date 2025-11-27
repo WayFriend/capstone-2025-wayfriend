@@ -1,6 +1,6 @@
 // 백엔드 API를 통한 네이버 지도 서비스
 
-import { API_BASE_URL } from './apiConfig';
+import { API_BASE_URL, getApiUrl } from './apiConfig';
 
 // Window 타입 확장
 declare global {
@@ -21,7 +21,7 @@ export interface GeocodeResult {
 // Naver Client ID를 백엔드에서 가져오는 함수 (백엔드 실패 시 환경 변수 fallback)
 export const getNaverClientId = async (): Promise<string | null> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/config`);
+    const response = await fetch(getApiUrl('/api/config'));
     if (!response.ok) {
       throw new Error('Config API 오류');
     }
@@ -108,7 +108,7 @@ export const geocode = async (address: string): Promise<GeocodeResult[]> => {
 
             // SDK로 결과가 없거나 실패한 경우 백엔드 API로 fallback
             console.log('[geocode] SDK 검색 결과 없음 또는 실패, 백엔드 API로 시도');
-            fetch(`${API_BASE_URL}/api/geocode`, {
+            fetch(getApiUrl('/api/geocode'), {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -141,7 +141,7 @@ export const geocode = async (address: string): Promise<GeocodeResult[]> => {
   // SDK가 없거나 실패한 경우 백엔드 API 사용
   try {
     console.log('[geocode] 백엔드 API 사용하여 검색:', address);
-    const response = await fetch(`${API_BASE_URL}/api/geocode`, {
+    const response = await fetch(getApiUrl('/api/geocode'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -169,7 +169,7 @@ export const getDirections = async (
   option: 'trafast' | 'tracomfort' | 'traoptimal' = 'trafast'
 ): Promise<any> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/directions`, {
+    const response = await fetch(getApiUrl('/api/directions'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -223,7 +223,7 @@ export const getStaticMapImage = async (
       requestBody.end_point = { lat: endPoint.lat, lng: endPoint.lng };
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/static-map`, {
+    const response = await fetch(getApiUrl('/api/static-map'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -272,7 +272,7 @@ export const getStaticMapImage = async (
 export const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
   try {
     console.log(`[역지오코딩] 요청: (${lat}, ${lng})`);
-    const response = await fetch(`${API_BASE_URL}/api/reverse-geocode`, {
+    const response = await fetch(getApiUrl('/api/reverse-geocode'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
