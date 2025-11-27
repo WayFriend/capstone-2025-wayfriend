@@ -59,13 +59,6 @@ export default async function handler(
     });
 
     const contentType = response.headers.get('content-type');
-    let data: any;
-
-    if (contentType?.includes('application/json')) {
-      data = await response.json().catch(() => ({}));
-    } else {
-      data = await response.text().catch(() => '');
-    }
 
     // 응답 헤더 복사 (CORS 관련 제외)
     response.headers.forEach((value, key) => {
@@ -74,7 +67,19 @@ export default async function handler(
       }
     });
 
-    res.status(response.status).json(data);
+    // Content-Type에 따라 응답 처리
+    if (contentType?.includes('application/json')) {
+      const data = await response.json().catch(() => ({}));
+      res.status(response.status).json(data);
+    } else if (contentType?.includes('text/')) {
+      const text = await response.text().catch(() => '');
+      res.status(response.status).send(text);
+    } else {
+      // 기타 타입은 blob으로 처리
+      const blob = await response.blob().catch(() => new Blob());
+      const buffer = await blob.arrayBuffer();
+      res.status(response.status).send(Buffer.from(buffer));
+    }
   } catch (error: any) {
     console.error('[Proxy] Error:', error);
     res.status(500).json({
