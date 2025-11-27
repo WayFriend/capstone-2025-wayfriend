@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import RouteDetailModal from '../components/RouteDetailModal';
 import { getToken } from '../services/authService';
 import { reverseGeocode } from '../utils/naverMapApi';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 // 저장된 경로 데이터 타입 정의
 interface SavedRoute {
@@ -88,7 +89,7 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
     setError(null);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://34.239.248.132:8000';
+      const apiUrl = API_BASE_URL;
       const token = getToken();
 
       if (!token) {
@@ -272,7 +273,7 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
     }
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://34.239.248.132:8000';
+      const apiUrl = API_BASE_URL;
       const token = getToken();
 
       if (!token) {

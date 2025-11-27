@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { getNaverClientId } from '../utils/naverMapApi';
+import { API_BASE_URL } from '../utils/apiConfig';
 
 declare global {
   interface Window {
@@ -823,7 +824,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
         const sw = bounds.getSW(); // 남서쪽
         const ne = bounds.getNE(); // 북동쪽
 
-        const apiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://34.239.248.132:8000';
+        const apiUrl = API_BASE_URL;
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
         const response = await fetch(
