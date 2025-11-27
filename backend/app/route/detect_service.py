@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.route.models import Obstacle
 from datetime import datetime
 from PIL import Image
-from PIL.ExifTags import TAGS, GPSTAGS
+from PIL.ExifTags import TAGS, GPSTAGS, GPSIFD
 
 # 현재 파일의 디렉토리를 기준으로 경로 설정 (도커 컨테이너 내부 경로 고려)
 BASE_DIR = Path(__file__).parent
@@ -43,41 +43,60 @@ def get_gps_from_image(img_path):
     try:
         img = Image.open(img_path)
         
-        # 최신 Pillow 버전에서는 getexif() 사용 (deprecated: _getexif())
-        try:
-            exif_data = img.getexif() if hasattr(img, 'getexif') else img._getexif()
-        except AttributeError:
-            exif_data = img._getexif()
-        
-        if not exif_data:
-            return None
-
         # GPSInfo 태그 ID는 34853
         GPS_INFO_TAG = 34853
-        
         gps_info = {}
         gps_ifd = None
         
-        # GPSInfo 추출 시도 (여러 방법 시도)
+        # 방법 1: _getexif() 사용 (GPSInfo 접근에 더 적합)
         try:
-            # 방법 1: 직접 태그 ID로 접근
-            if GPS_INFO_TAG in exif_data:
-                gps_ifd = exif_data[GPS_INFO_TAG]
-            # 방법 2: items()로 순회
-            elif hasattr(exif_data, 'items'):
+            exif_data = img._getexif()
+            if exif_data:
+                # 메인 EXIF에서 GPSInfo 찾기
                 for key, val in exif_data.items():
                     tag_name = TAGS.get(key, key)
                     if tag_name == "GPSInfo" or key == GPS_INFO_TAG:
                         gps_ifd = val
                         break
-            # 방법 3: get() 메서드 사용
-            elif hasattr(exif_data, 'get'):
-                gps_ifd = exif_data.get(GPS_INFO_TAG)
-        except Exception as e:
-            print(f"⚠️ GPSInfo 태그 찾기 실패: {e}")
-            return None
+        except Exception:
+            pass
         
+        # 방법 2: getexif() + get_ifd() 사용 (신버전 Pillow)
+        if gps_ifd is None and hasattr(img, 'getexif'):
+            try:
+                exif = img.getexif()
+                if exif and hasattr(exif, 'get_ifd'):
+                    # GPS IFD 직접 접근 (34853은 IFD 타입이 아니라 태그 ID)
+                    # get_ifd()는 IFD 타입을 받지만, GPS는 별도 IFD이므로 다른 방법 필요
+                    # 대신 exif.get()으로 직접 접근 시도
+                    try:
+                        gps_ifd = exif.get(GPS_INFO_TAG)
+                    except:
+                        pass
+            except Exception:
+                pass
+        
+        # 디버그: GPS를 못 찾았을 때 EXIF 데이터 확인 (첫 번째 이미지만)
         if gps_ifd is None:
+            # 첫 번째 이미지 파일에 대해서만 상세 로그 출력
+            if "20250914_113434" in img_path or "KakaoTalk_20250915_161901366_01" in img_path:
+                try:
+                    # _getexif()로 확인
+                    exif_debug = img._getexif()
+                    if exif_debug:
+                        print(f"🔍 [{os.path.basename(img_path)}] EXIF 태그: {list(exif_debug.keys())[:10]}")
+                        for key in list(exif_debug.keys())[:15]:
+                            tag_name = TAGS.get(key, key)
+                            if "GPS" in tag_name.upper() or key == GPS_INFO_TAG:
+                                print(f"🔍 GPS 관련 태그 발견: {key} = {tag_name}, value type: {type(exif_debug[key])}")
+                    
+                    # getexif()로도 확인
+                    if hasattr(img, 'getexif'):
+                        exif_new = img.getexif()
+                        if exif_new:
+                            print(f"🔍 [{os.path.basename(img_path)}] getexif() 태그: {list(exif_new.keys())[:10] if hasattr(exif_new, 'keys') else 'N/A'}")
+                except Exception as e:
+                    print(f"🔍 디버그 실패: {e}")
             return None
         
         # GPSInfo 데이터 파싱
