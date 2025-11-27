@@ -10,10 +10,5 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "functions": {
-    "api/proxy/[...path].ts": {
-      "runtime": "@vercel/node"
-    }
-  }
+  ]
 }
