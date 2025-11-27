@@ -6,17 +6,22 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  // 모든 HTTP 메서드 허용
+  if (req.method === 'OPTIONS') {
+    // CORS preflight 처리
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.status(200).end();
+    return;
+  }
+
   // CORS 헤더 설정
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  // OPTIONS 요청 처리 (CORS preflight)
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
 
   const { path } = req.query;
   const pathString = Array.isArray(path) ? path.join('/') : path || '';
@@ -28,37 +33,54 @@ export default async function handler(
 
   const url = `${BACKEND_URL}/${pathString}${queryString}`;
 
+  console.log(`[Proxy] ${req.method} ${url}`);
+  console.log(`[Proxy] Body:`, req.body);
+
   try {
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
     // Authorization 헤더 전달
     if (req.headers.authorization) {
-      headers['Authorization'] = req.headers.authorization;
+      headers['Authorization'] = req.headers.authorization as string;
+    }
+
+    // 요청 본문 처리
+    let body: string | undefined;
+    if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
+      body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
     }
 
     const response = await fetch(url, {
-      method: req.method,
+      method: req.method || 'GET',
       headers,
-      body: req.method !== 'GET' && req.method !== 'HEAD' && req.body
-        ? JSON.stringify(req.body)
-        : undefined,
+      body,
     });
 
-    const data = await response.json().catch(() => ({}));
+    const contentType = response.headers.get('content-type');
+    let data: any;
 
-    // 응답 헤더 복사
+    if (contentType?.includes('application/json')) {
+      data = await response.json().catch(() => ({}));
+    } else {
+      data = await response.text().catch(() => '');
+    }
+
+    // 응답 헤더 복사 (CORS 관련 제외)
     response.headers.forEach((value, key) => {
-      res.setHeader(key, value);
+      if (!key.toLowerCase().startsWith('access-control-')) {
+        res.setHeader(key, value);
+      }
     });
 
     res.status(response.status).json(data);
   } catch (error: any) {
-    console.error('Proxy error:', error);
+    console.error('[Proxy] Error:', error);
     res.status(500).json({
       error: 'Proxy error',
-      message: error?.message || 'Unknown error'
+      message: error?.message || 'Unknown error',
+      url: url
     });
   }
 }
