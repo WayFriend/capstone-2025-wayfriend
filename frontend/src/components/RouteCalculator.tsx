@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getToken } from '../services/authService';
-import { API_BASE_URL } from '../utils/apiConfig';
+import { getApiUrl } from '../utils/apiConfig';
 
 export interface RouteStep {
   instruction: string;
@@ -61,7 +61,6 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({
       console.log('🗺️ 경로 계산 시작:', { startLocation, endLocation, mode, filter, avoidObstacles });
 
       // 백엔드 API 호출
-      const apiUrl = API_BASE_URL;
       const token = getToken();
 
       // 장애물 타입을 백엔드 형식으로 변환
@@ -79,7 +78,7 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({
       // 반경 설정 (미터)
       const radiusM = 5; // 5미터 반경 내 장애물 회피 (5m 밖이면 회피 성공)
 
-      const response = await fetch(`${apiUrl}/route/find`, {
+      const response = await fetch(getApiUrl('/route/find'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

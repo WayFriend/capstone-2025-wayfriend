@@ -4,7 +4,7 @@ import LocationSearch from '../components/LocationSearch';
 import RouteCalculator, { RouteInfo } from '../components/RouteCalculator';
 import { geocode } from '../utils/naverMapApi';
 import { getToken } from '../services/authService';
-import { API_BASE_URL } from '../utils/apiConfig';
+import { getApiUrl } from '../utils/apiConfig';
 
 interface SavedRouteForNavigation {
   start: string;
@@ -58,7 +58,6 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
     }
 
     try {
-      const apiUrl = API_BASE_URL;
       const token = getToken();
 
       // routeInfo에서 route_points와 distance_m 추출
@@ -85,7 +84,7 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
         avoided: Array.from(selectedObstacles)
       };
 
-      const response = await fetch(`${apiUrl}/route/save`, {
+      const response = await fetch(getApiUrl('/route/save'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

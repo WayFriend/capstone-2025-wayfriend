@@ -1,6 +1,6 @@
 // 인증 API 서비스
 
-import { API_BASE_URL } from '../utils/apiConfig';
+import { API_BASE_URL, getApiUrl } from '../utils/apiConfig';
 
 export interface SignupRequest {
   email: string;
@@ -47,7 +47,7 @@ export const getAuthHeaders = (): HeadersInit => {
 
 // 회원가입
 export const signup = async (data: SignupRequest): Promise<SignupResponse> => {
-  const response = await fetch(`${API_BASE_URL}/user/signup`, {
+  const response = await fetch(getApiUrl('/user/signup'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ export const signup = async (data: SignupRequest): Promise<SignupResponse> => {
 
 // 로그인
 export const login = async (data: LoginRequest): Promise<LoginResponse> => {
-  const response = await fetch(`${API_BASE_URL}/user/login`, {
+  const response = await fetch(getApiUrl('/user/login'), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ export const login = async (data: LoginRequest): Promise<LoginResponse> => {
 // 로그아웃
 export const logout = async (): Promise<void> => {
   try {
-    await fetch(`${API_BASE_URL}/user/logout`, {
+    await fetch(getApiUrl('/user/logout'), {
       method: 'POST',
       headers: getAuthHeaders(),
     });
@@ -112,7 +112,7 @@ export const getCurrentUser = async () => {
     throw new Error('로그인이 필요합니다.');
   }
 
-  const response = await fetch(`${API_BASE_URL}/user/me`, {
+  const response = await fetch(getApiUrl('/user/me'), {
     method: 'GET',
     headers: getAuthHeaders(),
   });
