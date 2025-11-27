@@ -1,5 +1,3 @@
-# backend/app/route/service.py
-
 import math
 from typing import List, Dict, Tuple
 from collections import defaultdict
