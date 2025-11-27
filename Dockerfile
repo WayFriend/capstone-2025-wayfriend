@@ -29,6 +29,8 @@ RUN mkdir -p /usr/lib/x86_64-linux-gnu && \
         '/* OpenGL functions */' \
         'void glMatrixMode(unsigned int mode) {}' \
         'void glLoadIdentity(void) {}' \
+        'void glLoadMatrixf(const float* m) {}' \
+        'void glLoadMatrixd(const double* m) {}' \
         'void glPushMatrix(void) {}' \
         'void glPopMatrix(void) {}' \
         'void glOrtho(double left, double right, double bottom, double top, double near, double far) {}' \
