@@ -76,7 +76,7 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({
       };
 
       // 반경 설정 (미터)
-      const radiusM = 50; // 50미터 반경 내 장애물 회피
+      const radiusM = 5; // 5미터 반경 내 장애물 회피 (5m 밖이면 회피 성공)
 
       const response = await fetch(`${apiUrl}/route/find`, {
         method: 'POST',
