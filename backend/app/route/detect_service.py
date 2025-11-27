@@ -1,6 +1,7 @@
 # app/route/detect_service.py
 
 import os
+import math
 from pathlib import Path
 from sqlalchemy.orm import Session
 from app.route.models import Obstacle
@@ -61,18 +62,35 @@ def get_gps_from_image(img_path):
         except Exception:
             pass
         
-        # 방법 2: getexif() + get_ifd() 사용 (신버전 Pillow)
+        # 방법 2: getexif()에서 직접 접근
         if gps_ifd is None and hasattr(img, 'getexif'):
             try:
                 exif = img.getexif()
-                if exif and hasattr(exif, 'get_ifd'):
-                    # GPS IFD 직접 접근 (34853은 IFD 타입이 아니라 태그 ID)
-                    # get_ifd()는 IFD 타입을 받지만, GPS는 별도 IFD이므로 다른 방법 필요
-                    # 대신 exif.get()으로 직접 접근 시도
+                if exif:
+                    # 방법 2-1: 직접 태그 ID로 접근
                     try:
-                        gps_ifd = exif.get(GPS_INFO_TAG)
+                        if GPS_INFO_TAG in exif:
+                            gps_ifd = exif[GPS_INFO_TAG]
                     except:
                         pass
+                    
+                    # 방법 2-2: get() 메서드 사용
+                    if gps_ifd is None:
+                        try:
+                            gps_ifd = exif.get(GPS_INFO_TAG)
+                        except:
+                            pass
+                    
+                    # 방법 2-3: items()로 순회
+                    if gps_ifd is None and hasattr(exif, 'items'):
+                        try:
+                            for key, val in exif.items():
+                                tag_name = TAGS.get(key, key)
+                                if tag_name == "GPSInfo" or key == GPS_INFO_TAG:
+                                    gps_ifd = val
+                                    break
+                        except:
+                            pass
             except Exception:
                 pass
         
@@ -117,6 +135,23 @@ def get_gps_from_image(img_path):
 
         if not gps_info or "GPSLatitude" not in gps_info or "GPSLongitude" not in gps_info:
             return None
+        
+        # GPS 좌표 값 자체가 유효한지 미리 체크
+        lat_raw = gps_info.get("GPSLatitude")
+        lon_raw = gps_info.get("GPSLongitude")
+        
+        # None 체크
+        if lat_raw is None or lon_raw is None:
+            return None
+        
+        # 튜플/리스트가 아닌 경우
+        if not isinstance(lat_raw, (tuple, list)) or not isinstance(lon_raw, (tuple, list)):
+            return None
+        
+        # 길이가 3이 아닌 경우
+        if len(lat_raw) != 3 or len(lon_raw) != 3:
+            return None
+        
     except Exception as e:
         print(f"⚠️ 이미지 로드/EXIF 읽기 실패 ({img_path}): {e}")
         return None
@@ -124,24 +159,87 @@ def get_gps_from_image(img_path):
     def convert_to_degrees(value):
         """GPS 좌표를 도(degrees)로 변환. IFDRational 객체도 처리"""
         try:
+            if value is None:
+                return None
+            
+            # 튜플/리스트가 아닌 경우 처리
+            if not isinstance(value, (tuple, list)):
+                return None
+            
+            # 길이가 3이 아닌 경우 처리
+            if len(value) != 3:
+                return None
+            
             d, m, s = value
             
             # IFDRational 객체 처리 (Pillow 최신 버전)
             def to_float(rational):
-                if hasattr(rational, 'numerator') and hasattr(rational, 'denominator'):
-                    return float(rational.numerator) / float(rational.denominator)
-                elif isinstance(rational, tuple) and len(rational) == 2:
-                    return float(rational[0]) / float(rational[1])
-                else:
-                    return float(rational)
+                """각 좌표 구성 요소를 float로 변환"""
+                try:
+                    # IFDRational 객체인 경우
+                    if hasattr(rational, 'numerator') and hasattr(rational, 'denominator'):
+                        if rational.denominator == 0:
+                            return None
+                        result = float(rational.numerator) / float(rational.denominator)
+                    # 튜플 (분자, 분모) 형태인 경우
+                    elif isinstance(rational, (tuple, list)) and len(rational) == 2:
+                        if rational[1] == 0:
+                            return None
+                        result = float(rational[0]) / float(rational[1])
+                    # 이미 숫자인 경우
+                    elif isinstance(rational, (int, float)):
+                        result = float(rational)
+                    else:
+                        # 다른 타입은 시도해보되 실패하면 None 반환
+                        try:
+                            result = float(rational)
+                        except (TypeError, ValueError):
+                            return None
+                    
+                    # NaN, Inf 체크
+                    if math.isnan(result) or math.isinf(result):
+                        return None
+                    
+                    # 범위 체크 (좌표가 유효한 범위인지)
+                    if abs(result) > 360:  # 도 단위 좌표는 보통 -180~180 또는 0~360
+                        return None
+                    
+                    return result
+                except Exception:
+                    return None
             
+            # 각 구성 요소 변환
             d_deg = to_float(d)
-            m_deg = to_float(m) / 60.0
-            s_deg = to_float(s) / 3600.0
+            if d_deg is None:
+                return None
             
-            return d_deg + m_deg + s_deg
-        except (TypeError, ValueError, ZeroDivisionError) as e:
-            print(f"⚠️ GPS 좌표 변환 실패: {e}, value: {value}")
+            m_deg_val = to_float(m)
+            if m_deg_val is None:
+                return None
+            m_deg = m_deg_val / 60.0
+            
+            s_deg_val = to_float(s)
+            if s_deg_val is None:
+                return None
+            s_deg = s_deg_val / 3600.0
+            
+            # 최종 좌표 계산
+            result = d_deg + m_deg + s_deg
+            
+            # 최종 결과 유효성 검사
+            if math.isnan(result) or math.isinf(result):
+                return None
+            
+            # 범위 검사 (위도: -90~90, 경도: -180~180)
+            # 일단 합리적인 범위 내인지 확인
+            if abs(result) > 360:
+                return None
+            
+            return result
+        except (TypeError, ValueError, ZeroDivisionError, IndexError) as e:
+            # 로그는 최소화 (너무 많은 로그 방지)
+            return None
+        except Exception:
             return None
 
     lat = convert_to_degrees(gps_info.get("GPSLatitude"))
@@ -150,10 +248,24 @@ def get_gps_from_image(img_path):
     if lat is None or lon is None:
         return None
 
+    # 남반구/서반구 보정
     if gps_info.get("GPSLatitudeRef") == "S":
         lat = -lat
     if gps_info.get("GPSLongitudeRef") == "W":
         lon = -lon
+
+    # 최종 좌표 유효성 검사 (위도: -90~90, 경도: -180~180)
+    if lat < -90 or lat > 90 or lon < -180 or lon > 180:
+        print(f"⚠️ GPS 좌표 범위 초과: lat={lat}, lon={lon}")
+        return None
+    
+    # NaN/Inf 최종 체크
+    if math.isnan(lat) or math.isnan(lon) or math.isinf(lat) or math.isinf(lon):
+        return None
+
+    # 성공한 경우 항상 로그 출력
+    filename = os.path.basename(img_path)
+    print(f"✅ GPS 추출 성공: {filename} -> Lat={lat:.6f}, Lon={lon:.6f}")
 
     return lat, lon
 
@@ -199,7 +311,7 @@ def detect_folder_and_save(db: Session):
             # GPS 좌표 추출
             gps = get_gps_from_image(img_path)
             if gps is None:
-                print(f"❌ GPS 없음: {filename}")
+                # GPS 없음 로그는 최소화 (너무 많은 로그 방지)
                 continue
 
             # 모델 로드 (지연 로딩)
