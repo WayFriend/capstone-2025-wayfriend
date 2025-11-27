@@ -78,6 +78,7 @@ export default async function handler(
       // 기타 타입은 blob으로 처리
       const blob = await response.blob().catch(() => new Blob());
       const buffer = await blob.arrayBuffer();
+      // Node.js Buffer 사용 (Vercel 환경에서 사용 가능)
       res.status(response.status).send(Buffer.from(buffer));
     }
   } catch (error: any) {
