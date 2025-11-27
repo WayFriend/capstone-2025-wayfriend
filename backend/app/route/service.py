@@ -1,8 +1,12 @@
 # backend/app/route/service.py
 
+import math
+from typing import List, Dict, Tuple
+from collections import defaultdict
+
 from sqlalchemy.orm import Session
 
-from app.route.pathfinding import astar_path_with_penalty
+from app.route.pathfinding import astar_path_with_penalty, haversine_m
 from app.route.models import RouteResult, Obstacle
 
 
@@ -79,10 +83,10 @@ def get_all_obstacles(db: Session):
 
 
 # ---------------------------------------------------------
-# 7) DB에 장애물 데이터가 있는지 확인
+# 5-1) 장애물 존재 여부 확인
 # ---------------------------------------------------------
 def has_obstacles(db: Session) -> bool:
-    """DB에 장애물 데이터가 하나라도 있는지 확인"""
+    """DB에 장애물이 하나라도 있는지 확인"""
     count = db.query(Obstacle).count()
     return count > 0
 
@@ -90,9 +94,106 @@ def has_obstacles(db: Session) -> bool:
 # ---------------------------------------------------------
 # 6) 최적 회피 경로 계산 (핵심 기능)
 # ---------------------------------------------------------
+def calculate_stats_for_route(
+    route_coords: List[Tuple[float, float]],
+    original_avoid_types: List[str],
+    db: Session,
+    radius_m: float,
+    start: Tuple[float, float] = None,
+    end: Tuple[float, float] = None,
+) -> Dict[str, Dict[str, int]]:
+    """
+    최종 경로에 대해 원래 선택한 모든 타입의 장애물 통계를 계산.
+    경로를 재계산하지 않고 기존 경로 좌표에 대한 통계만 계산.
+    """
+    if not original_avoid_types or not route_coords:
+        return {}
+
+    # bounding box 계산: 시작/끝점이 있으면 그것을 기준으로, 없으면 경로 좌표 기준
+    # pathfinding.py의 load_graph_for_route와 동일한 방식 사용
+    if start and end:
+        lat1, lon1 = start
+        lat2, lon2 = end
+        margin_deg = 0.01  # 위도/경도 ~1.1km 정도 (pathfinding.py와 동일)
+        north = max(lat1, lat2) + margin_deg
+        south = min(lat1, lat2) - margin_deg
+        east = max(lon1, lon2) + margin_deg
+        west = min(lon1, lon2) - margin_deg
+    else:
+        # fallback: 경로 좌표 기준 (반경을 고려해 더 넓게)
+        lats = [coord[0] for coord in route_coords]
+        lngs = [coord[1] for coord in route_coords]
+        # 반경을 고려해 더 넓은 margin 사용 (약 0.001도 = 약 111m)
+        margin_deg = 0.001 + (radius_m / 111000.0)  # 반경을 도 단위로 변환
+        north = max(lats) + margin_deg
+        south = min(lats) - margin_deg
+        east = max(lngs) + margin_deg
+        west = min(lngs) - margin_deg
+
+    # 원래 선택한 모든 타입의 장애물 조회
+    obstacles = (
+        db.query(Obstacle)
+        .filter(Obstacle.type.in_(original_avoid_types))
+        .filter(Obstacle.lat >= south, Obstacle.lat <= north)
+        .filter(Obstacle.lng >= west, Obstacle.lng <= east)
+        .all()
+    )
+
+    # 통계 계산
+    type_total = defaultdict(int)
+    type_failed = defaultdict(int)
+    type_success = defaultdict(int)
+
+    for obs in obstacles:
+        obs_type = obs.type
+        type_total[obs_type] += 1
+        hit = False
+
+        # 경로 위 좌표들 중 반경 내에 들어오는지 확인
+        # 노드뿐만 아니라 노드 사이의 경로(edge)도 고려
+        for i in range(len(route_coords)):
+            route_lat, route_lng = route_coords[i]
+            d = haversine_m(route_lat, route_lng, obs.lat, obs.lng)
+            if d <= radius_m:
+                hit = True
+                break
+
+            # 다음 노드와의 세그먼트도 확인 (노드 사이 경로를 놓치지 않기 위해)
+            if i < len(route_coords) - 1:
+                next_lat, next_lng = route_coords[i + 1]
+                # 세그먼트의 최단 거리 근사: 두 노드 사이의 중간점들도 체크
+                # 더 정확하게 하려면 여러 중간점을 체크
+                for j in range(1, 4):  # 3개의 중간점 체크
+                    mid_lat = route_lat + (next_lat - route_lat) * (j / 4.0)
+                    mid_lng = route_lng + (next_lng - route_lng) * (j / 4.0)
+                    d_mid = haversine_m(mid_lat, mid_lng, obs.lat, obs.lng)
+                    if d_mid <= radius_m:
+                        hit = True
+                        break
+                if hit:
+                    break
+
+        if hit:
+            type_failed[obs_type] += 1
+        else:
+            type_success[obs_type] += 1
+
+    # 타입별 통계 생성 (원래 선택한 모든 타입 포함)
+    obstacle_stats: Dict[str, Dict[str, int]] = {}
+    for t in original_avoid_types:
+        obstacle_stats[t] = {
+            "total": type_total[t],
+            "success": type_success[t],
+            "failed": type_failed[t],
+        }
+
+    return obstacle_stats
+
+
 def find_best_path(req, db, user_id):
 
     current_avoid = list(req.avoid_types)
+    original_avoid_types = list(req.avoid_types)  # 원래 선택한 타입 저장
 
     while True:
         # 1) 경로 계산
@@ -107,14 +208,30 @@ def find_best_path(req, db, user_id):
 
         failed = res["risk_factors"]
 
-        # 2) 모든 회피 성공 → 반환
+        # 2) 모든 회피 성공 → 최종 경로에 대해 원래 선택한 모든 타입의 통계 계산
         if not failed:
+            # 최종 경로에 대해 원래 선택한 모든 타입의 통계를 다시 계산
+            final_stats = calculate_stats_for_route(
+                route_coords=res["route"],
+                original_avoid_types=original_avoid_types,
+                db=db,
+                radius_m=req.radius_m,
+                start=(req.start_lat, req.start_lng),
+                end=(req.end_lat, req.end_lng),
+            )
+
+            # risk_factors는 원래 타입 기준으로 재계산
+            final_risk_factors = [
+                t for t in original_avoid_types
+                if final_stats.get(t, {}).get("failed", 0) > 0
+            ]
+
             return {
                 "route": res["route"],
                 "distance_m": res["distance_m"],
-                "risk_factors": failed,
+                "risk_factors": final_risk_factors,
                 "avoided_final": current_avoid,
-                "obstacle_stats": res.get("obstacle_stats", {})  # 장애물 통계 추가
+                "obstacle_stats": final_stats  # 원래 선택한 모든 타입의 통계
             }
 
         # 3) 실패한 회피 제거
@@ -132,10 +249,27 @@ def find_best_path(req, db, user_id):
                 radius_m=req.radius_m,
                 penalties=req.penalties
             )
+
+            # 최종 경로에 대해 원래 선택한 모든 타입의 통계 계산
+            final_stats = calculate_stats_for_route(
+                route_coords=final["route"],
+                original_avoid_types=original_avoid_types,
+                db=db,
+                radius_m=req.radius_m,
+                start=(req.start_lat, req.start_lng),
+                end=(req.end_lat, req.end_lng),
+            )
+
+            # risk_factors는 원래 타입 기준으로 재계산
+            final_risk_factors = [
+                t for t in original_avoid_types
+                if final_stats.get(t, {}).get("failed", 0) > 0
+            ]
+
             return {
                 "route": final["route"],
                 "distance_m": final["distance_m"],
-                "risk_factors": [],
+                "risk_factors": final_risk_factors,
                 "avoided_final": [],
-                "obstacle_stats": final.get("obstacle_stats", {})  # 장애물 통계 추가
+                "obstacle_stats": final_stats  # 원래 선택한 모든 타입의 통계
             }
