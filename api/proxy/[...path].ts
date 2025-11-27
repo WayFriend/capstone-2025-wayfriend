@@ -7,6 +7,14 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
+  // 함수가 호출되었는지 확인하는 로그
+  console.log('[Proxy] 함수가 호출되었습니다!', {
+    method: req.method,
+    url: req.url,
+    query: req.query,
+    headers: req.headers
+  });
+
   // 모든 HTTP 메서드 허용
   if (req.method === 'OPTIONS') {
     // CORS preflight 처리
@@ -32,9 +40,23 @@ export default async function handler(
     ? req.url.substring(req.url.indexOf('?'))
     : '';
 
+  // 경로가 비어있으면 에러 반환
+  if (!pathString) {
+    console.error('[Proxy] 경로가 비어있습니다:', { path, query: req.query, url: req.url });
+    res.status(400).json({
+      error: 'Invalid path',
+      message: 'Path is required',
+      received: { path, query: req.query, url: req.url }
+    });
+    return;
+  }
+
   const url = `${BACKEND_URL}/${pathString}${queryString}`;
 
-  console.log(`[Proxy] ${req.method} ${url}`);
+  console.log(`[Proxy] ${req.method} ${req.url}`);
+  console.log(`[Proxy] Path:`, path);
+  console.log(`[Proxy] PathString:`, pathString);
+  console.log(`[Proxy] Backend URL:`, url);
   console.log(`[Proxy] Body:`, req.body);
 
   try {
