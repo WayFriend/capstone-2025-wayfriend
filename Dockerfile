@@ -31,6 +31,7 @@ RUN mkdir -p /usr/lib/x86_64-linux-gnu && \
         'void glLoadIdentity(void) {}' \
         'void glPushMatrix(void) {}' \
         'void glPopMatrix(void) {}' \
+        'void glOrtho(double left, double right, double bottom, double top, double near, double far) {}' \
         'void glTranslatef(float x, float y, float z) {}' \
         'void glRotatef(float angle, float x, float y, float z) {}' \
         'void glScalef(float x, float y, float z) {}' \
