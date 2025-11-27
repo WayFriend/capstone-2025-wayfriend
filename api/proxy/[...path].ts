@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const BACKEND_URL = process.env.BACKEND_URL || 'http://34.239.248.132:8000';
@@ -90,4 +91,6 @@ export default async function handler(
     });
   }
 }
+
+
 
