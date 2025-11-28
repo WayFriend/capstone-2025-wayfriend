@@ -26,16 +26,16 @@ additional_origins = [origin.strip() for origin in additional_origins if origin.
 
 # 허용된 Origin 목록
 allowed_origins_list = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-    "http://34.239.248.132:3000",
-    "http://34.239.248.132:5173",
-    "http://34.239.248.132:8000",  # 백엔드 자체 origin도 추가
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "http://34.239.248.132:3000",
+        "http://34.239.248.132:5173",
+        "http://34.239.248.132:8000",  # 백엔드 자체 origin도 추가
     "https://34.239.248.132",  # HTTPS 백엔드 URL 추가
-    *vercel_domains,
-    *additional_origins,
+        *vercel_domains,
+        *additional_origins,
 ]
 
 def is_allowed_origin(origin: str) -> bool:

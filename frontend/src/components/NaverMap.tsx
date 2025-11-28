@@ -217,7 +217,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
             const currentHostname = window.location.hostname;
             const currentPort = window.location.port;
             const currentOrigin = `${currentProtocol}//${currentHostname}${currentPort ? ':' + currentPort : ''}`;
-            const isPreviewDomain = currentHostname.includes('-') && currentHostname.includes('.vercel.app') && 
+            const isPreviewDomain = currentHostname.includes('-') && currentHostname.includes('.vercel.app') &&
                                    currentHostname !== 'capstone-2025-wayfriend.vercel.app';
 
             // 개발자용 상세 정보는 콘솔에만 출력
@@ -270,13 +270,13 @@ const NaverMap: React.FC<NaverMapProps> = ({
               const bgImage = window.getComputedStyle(container).backgroundImage;
               if (bgImage.includes('auth_fail')) {
                 const currentOrigin = `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
-                const isPreviewDomain = window.location.hostname.includes('-') && window.location.hostname.includes('.vercel.app') && 
+                const isPreviewDomain = window.location.hostname.includes('-') && window.location.hostname.includes('.vercel.app') &&
                                        window.location.hostname !== 'capstone-2025-wayfriend.vercel.app';
 
                 // 개발자용 상세 정보는 콘솔에만 출력
                 console.error('[ERROR] 인증 실패 배경 이미지 감지됨:', bgImage);
                 console.error('[ERROR] 현재 접속 정보:', currentOrigin);
-                
+
                 if (isPreviewDomain) {
                   // 프리뷰 도메인인 경우
                   console.warn('[WARN] Vercel 프리뷰 도메인에서 지도 인증 실패 (예상된 동작)');
