@@ -19,13 +19,13 @@ export const getApiBaseUrl = (): string => {
                        (hostname !== 'localhost' && hostname !== '127.0.0.1');
 
   if (isProduction) {
-    // Vercel 배포: 환경 변수로 EC2 백엔드(34.239.248.132:8000)에 직접 연결
-    const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+    // Vercel 배포: 환경 변수로 EC2 백엔드 HTTPS에 직접 연결
+    const envUrl = import.meta.env.VITE_API_BASE_URL;
     return envUrl || '/api/proxy';
   }
 
   // 개발 환경: 환경 변수가 있으면 사용, 없으면 EC2 백엔드 기본값 사용
-  const envUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL;
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
   return envUrl || 'http://34.239.248.132:8000';  // EC2 백엔드 주소
 };
 
