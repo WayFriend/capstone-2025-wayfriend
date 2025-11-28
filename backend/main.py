@@ -16,6 +16,7 @@ app = FastAPI()
 # Vercel 도메인 추가 (프로덕션 및 프리뷰)
 vercel_domains = [
     "https://capstone-2025-wayfriend.vercel.app",
+    "https://34.239.248.132",  # HTTPS 백엔드 URL 추가
     # 환경 변수에서 추가 도메인 가져오기 (선택사항)
 ]
 
