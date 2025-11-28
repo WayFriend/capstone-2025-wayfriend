@@ -28,8 +28,9 @@ services:
       DATABASE_HOST: ${DATABASE_HOST:-db}
       DATABASE_PORT: ${DATABASE_PORT:-5432}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173,http://34.239.248.132:5173}
+    # HTTPS 설정: Nginx가 localhost:8000으로만 접근하도록 제한
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"  # localhost에서만 접근 가능 (Nginx 프록시용)
     depends_on:
       db:
         condition: service_healthy
