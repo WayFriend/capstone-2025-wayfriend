@@ -21,7 +21,9 @@ export interface GeocodeResult {
 // Naver Client ID를 백엔드에서 가져오는 함수 (백엔드 실패 시 환경 변수 fallback)
 export const getNaverClientId = async (): Promise<string | null> => {
   try {
-    const response = await fetch(getApiUrl('/api/config'));
+    const response = await fetch(getApiUrl('/api/config'), {
+      credentials: 'include',  // 세션/쿠키 사용시 필요
+    });
     if (!response.ok) {
       throw new Error('Config API 오류');
     }
@@ -113,6 +115,7 @@ export const geocode = async (address: string): Promise<GeocodeResult[]> => {
               headers: {
                 'Content-Type': 'application/json',
               },
+              credentials: 'include',  // 세션/쿠키 사용시 필요
               body: JSON.stringify({ query: address }),
             })
               .then((response) => {
@@ -146,6 +149,7 @@ export const geocode = async (address: string): Promise<GeocodeResult[]> => {
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',  // 세션/쿠키 사용시 필요
       body: JSON.stringify({ query: address }),
     });
 
@@ -174,6 +178,7 @@ export const getDirections = async (
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',  // 세션/쿠키 사용시 필요
       body: JSON.stringify({
         start: { lat: start.lat, lng: start.lng },
         goal: { lat: goal.lat, lng: goal.lng },
@@ -228,6 +233,7 @@ export const getStaticMapImage = async (
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',  // 세션/쿠키 사용시 필요
       body: JSON.stringify(requestBody),
     });
 
@@ -277,6 +283,7 @@ export const reverseGeocode = async (lat: number, lng: number): Promise<string> 
       headers: {
         'Content-Type': 'application/json',
       },
+      credentials: 'include',  // 세션/쿠키 사용시 필요
       body: JSON.stringify({ lat, lng }),
     });
 

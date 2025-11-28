@@ -24,6 +24,7 @@ app.add_middleware(
         "http://34.239.248.132:5173",
         "http://34.239.248.132:8000",  # 백엔드 자체 origin도 추가
     ],
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Vercel 프리뷰 배포 지원 (모든 *.vercel.app 도메인 허용)
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],

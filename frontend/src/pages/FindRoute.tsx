@@ -90,6 +90,7 @@ const FindRoute: React.FC<FindRouteProps> = ({ savedRoute, onRouteLoaded }) => {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
         },
+        credentials: 'include',  // 세션/쿠키 사용시 필요
         body: JSON.stringify(requestBody)
       });
 
