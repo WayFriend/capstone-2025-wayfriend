@@ -42,7 +42,7 @@ def is_allowed_origin(origin: str) -> bool:
     """Origin이 허용된 도메인인지 확인 (Vercel 도메인 포함)"""
     if not origin:
         return False
-    
+
     # 명시적으로 허용된 Origin 확인
     if origin in allowed_origins_list:
         print(f"[CORS] Origin 허용 (명시적): {origin}")
@@ -52,7 +52,7 @@ def is_allowed_origin(origin: str) -> bool:
     if re.match(r"https://.*\.vercel\.app$", origin):
         print(f"[CORS] Origin 허용 (Vercel 패턴): {origin}")
         return True
-    
+
     print(f"[CORS] Origin 거부: {origin}")
     return False
 
