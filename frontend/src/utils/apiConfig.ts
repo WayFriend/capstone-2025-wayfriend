@@ -34,17 +34,20 @@ export const API_BASE_URL = getApiBaseUrl();
 
 /**
  * API 엔드포인트 URL을 생성합니다.
- * 프록시를 사용하는 경우 엔드포인트를 그대로 전달합니다.
+ * 프록시를 사용하는 경우 /api 접두사를 제거합니다.
  * @param endpoint API 엔드포인트 (예: '/api/config', '/user/login')
  * @returns 완전한 API URL
  */
 export const getApiUrl = (endpoint: string): string => {
   // 엔드포인트 정규화 (앞에 /가 없으면 추가)
-  const normalizedEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
+  let normalizedEndpoint = endpoint.startsWith('/') ? endpoint : '/' + endpoint;
 
-  // API_BASE_URL이 프록시인 경우 엔드포인트를 그대로 전달
-  // 프록시 함수가 백엔드로 전달할 때 전체 경로를 사용
+  // API_BASE_URL이 프록시인 경우 /api 접두사 제거
+  // 예: /api/config -> /config, /user/login -> /user/login
   if (API_BASE_URL.startsWith('/api/proxy')) {
+    if (normalizedEndpoint.startsWith('/api/')) {
+      normalizedEndpoint = normalizedEndpoint.replace('/api/', '/');
+    }
     return `${API_BASE_URL}${normalizedEndpoint}`;
   }
 

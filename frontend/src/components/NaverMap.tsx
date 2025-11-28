@@ -217,6 +217,8 @@ const NaverMap: React.FC<NaverMapProps> = ({
             const currentHostname = window.location.hostname;
             const currentPort = window.location.port;
             const currentOrigin = `${currentProtocol}//${currentHostname}${currentPort ? ':' + currentPort : ''}`;
+            const isPreviewDomain = currentHostname.includes('-') && currentHostname.includes('.vercel.app') && 
+                                   currentHostname !== 'capstone-2025-wayfriend.vercel.app';
 
             // 개발자용 상세 정보는 콘솔에만 출력
             console.error('[ERROR] 네이버 지도 인증 실패 콜백 호출됨');
@@ -225,19 +227,27 @@ const NaverMap: React.FC<NaverMapProps> = ({
               hostname: currentHostname,
               port: currentPort,
               fullOrigin: currentOrigin,
-              clientId: naverClientId?.substring(0, 8) + '...'
+              clientId: naverClientId?.substring(0, 8) + '...',
+              isPreviewDomain: isPreviewDomain
             });
-            console.error('[ERROR] 해결 방법:');
-            console.error('[ERROR] 1. NCP 콘솔 → Maps → Application → [인증 정보]');
-            console.error(`[ERROR] 2. Web 서비스 URL에 다음을 등록 (슬래시 없이!):`);
-            console.error(`[ERROR]    • ${currentProtocol}//${currentHostname}`);
-            console.error(`[ERROR]    • ${currentProtocol}//127.0.0.1`);
-            console.error('[ERROR] 3. 포트 번호 제외, 슬래시(/) 제거 필수');
-            console.error('[ERROR] 4. 저장 후 2-3분 대기 후 재시도');
-            console.error('[ERROR] 5. 브라우저 캐시 완전 삭제 후 재시도');
 
-            // 사용자에게는 간단한 메시지만 표시
-            setError('지도 로딩에 실패했습니다. 잠시 후 다시 시도해주세요.');
+            if (isPreviewDomain) {
+              // 프리뷰 도메인인 경우
+              console.warn('[WARN] Vercel 프리뷰 도메인에서 지도 인증 실패 (예상된 동작)');
+              console.warn('[WARN] 프로덕션 도메인(https://capstone-2025-wayfriend.vercel.app)에서는 정상 작동합니다.');
+              setError('프리뷰 환경에서는 지도가 작동하지 않습니다. 프로덕션 배포에서 확인해주세요.');
+            } else {
+              // 프로덕션 도메인인 경우
+              console.error('[ERROR] 해결 방법:');
+              console.error('[ERROR] 1. NCP 콘솔 → Maps → Application → [인증 정보]');
+              console.error(`[ERROR] 2. Web 서비스 URL에 다음을 등록 (슬래시 없이!):`);
+              console.error(`[ERROR]    • ${currentProtocol}//${currentHostname}`);
+              console.error(`[ERROR]    • ${currentProtocol}//127.0.0.1`);
+              console.error('[ERROR] 3. 포트 번호 제외, 슬래시(/) 제거 필수');
+              console.error('[ERROR] 4. 저장 후 2-3분 대기 후 재시도');
+              console.error('[ERROR] 5. 브라우저 캐시 완전 삭제 후 재시도');
+              setError('지도 로딩에 실패했습니다. NCP 콘솔에서 도메인을 등록해주세요.');
+            }
           };
 
           // 지도 오류 이벤트 리스너 추가
@@ -260,18 +270,27 @@ const NaverMap: React.FC<NaverMapProps> = ({
               const bgImage = window.getComputedStyle(container).backgroundImage;
               if (bgImage.includes('auth_fail')) {
                 const currentOrigin = `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
+                const isPreviewDomain = window.location.hostname.includes('-') && window.location.hostname.includes('.vercel.app') && 
+                                       window.location.hostname !== 'capstone-2025-wayfriend.vercel.app';
 
                 // 개발자용 상세 정보는 콘솔에만 출력
                 console.error('[ERROR] 인증 실패 배경 이미지 감지됨:', bgImage);
                 console.error('[ERROR] 현재 접속 정보:', currentOrigin);
-                console.error(`[ERROR] NCP 콘솔에서 클라이언트 ID(${naverClientId?.substring(0, 8)}...)에 다음 도메인을 등록해주세요:`);
-                console.error(`[ERROR] - ${currentOrigin}`);
-                console.error('[ERROR] - http://localhost');
-                console.error('[ERROR] - http://127.0.0.1');
-                console.error('[ERROR] 참고: https://navermaps.github.io/maps.js.ncp/docs/tutorial-2-Getting-Started.html');
-
-                // 사용자에게는 간단한 메시지만 표시
-                setError('지도 로딩에 실패했습니다. 잠시 후 다시 시도해주세요.');
+                
+                if (isPreviewDomain) {
+                  // 프리뷰 도메인인 경우
+                  console.warn('[WARN] Vercel 프리뷰 도메인에서 지도 인증 실패 (예상된 동작)');
+                  console.warn('[WARN] 프로덕션 도메인(https://capstone-2025-wayfriend.vercel.app)에서는 정상 작동합니다.');
+                  setError('프리뷰 환경에서는 지도가 작동하지 않습니다. 프로덕션 배포에서 확인해주세요.');
+                } else {
+                  // 프로덕션 도메인인 경우
+                  console.error(`[ERROR] NCP 콘솔에서 클라이언트 ID(${naverClientId?.substring(0, 8)}...)에 다음 도메인을 등록해주세요:`);
+                  console.error(`[ERROR] - ${currentOrigin}`);
+                  console.error('[ERROR] - http://localhost');
+                  console.error('[ERROR] - http://127.0.0.1');
+                  console.error('[ERROR] 참고: https://navermaps.github.io/maps.js.ncp/docs/tutorial-2-Getting-Started.html');
+                  setError('지도 로딩에 실패했습니다. NCP 콘솔에서 도메인을 등록해주세요.');
+                }
               }
             }
           });
