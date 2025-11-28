@@ -103,7 +103,8 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
         headers: {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
-        }
+        },
+        credentials: 'include',  // 세션/쿠키 사용시 필요
       });
 
       if (!response.ok) {
@@ -284,7 +285,8 @@ const SavedRoutes: React.FC<SavedRoutesProps> = ({ onNavigateToRoute }) => {
         headers: {
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
-        }
+        },
+        credentials: 'include',  // 세션/쿠키 사용시 필요
       });
 
       if (!response.ok) {

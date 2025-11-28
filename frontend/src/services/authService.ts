@@ -1,6 +1,6 @@
 // 인증 API 서비스
 
-import { API_BASE_URL, getApiUrl } from '../utils/apiConfig';
+import { getApiUrl } from '../utils/apiConfig';
 
 export interface SignupRequest {
   email: string;
@@ -52,6 +52,7 @@ export const signup = async (data: SignupRequest): Promise<SignupResponse> => {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',  // 세션/쿠키 사용시 필요
     body: JSON.stringify(data),
   });
 
@@ -70,6 +71,7 @@ export const login = async (data: LoginRequest): Promise<LoginResponse> => {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',  // 세션/쿠키 사용시 필요
     body: JSON.stringify(data),
   });
 
@@ -94,6 +96,7 @@ export const logout = async (): Promise<void> => {
     await fetch(getApiUrl('/user/logout'), {
       method: 'POST',
       headers: getAuthHeaders(),
+      credentials: 'include',  // 세션/쿠키 사용시 필요
     });
   } catch (error) {
     console.error('로그아웃 API 호출 실패:', error);
@@ -115,6 +118,7 @@ export const getCurrentUser = async () => {
   const response = await fetch(getApiUrl('/user/me'), {
     method: 'GET',
     headers: getAuthHeaders(),
+    credentials: 'include',  // 세션/쿠키 사용시 필요
   });
 
   if (!response.ok) {

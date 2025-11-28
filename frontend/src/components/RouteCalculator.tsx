@@ -84,6 +84,7 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({
           'Content-Type': 'application/json',
           ...(token && { Authorization: `Bearer ${token}` })
         },
+        credentials: 'include',  // 세션/쿠키 사용시 필요
         body: JSON.stringify({
           start_lat: startLocation.lat,
           start_lng: startLocation.lng,
