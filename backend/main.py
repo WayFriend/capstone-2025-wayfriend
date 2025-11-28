@@ -48,9 +48,8 @@ def is_allowed_origin(origin: str) -> bool:
         print(f"[CORS] Origin 허용 (명시적): {origin}")
         return True
 
-    # Vercel 도메인 패턴 확인 (프로덕션 및 프리뷰)
-    # https://*.vercel.app 또는 https://*-*.vercel.app 패턴
-    if re.match(r"https://.*\.vercel\.app$", origin) or re.match(r"https://.*-.*\.vercel\.app$", origin):
+    # Vercel 도메인 패턴 확인 (프로덕션 및 프리뷰 모두 지원)
+    if re.match(r"https://.*\.vercel\.app$", origin):
         print(f"[CORS] Origin 허용 (Vercel 패턴): {origin}")
         return True
 
