@@ -74,7 +74,8 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
                 print(f"[CORS Middleware] Origin 허용, CORS 헤더 추가")
                 response.headers["Access-Control-Allow-Origin"] = origin
                 response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-                response.headers["Access-Control-Allow-Headers"] = "*"
+                # credentials: true일 때는 와일드카드(*) 사용 불가, 명시적으로 헤더 나열 필요
+                response.headers["Access-Control-Allow-Headers"] = "content-type, authorization, accept, origin, x-requested-with"
                 response.headers["Access-Control-Allow-Credentials"] = "true"
                 response.headers["Access-Control-Max-Age"] = "3600"
             else:
