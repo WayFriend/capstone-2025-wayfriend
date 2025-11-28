@@ -43,11 +43,11 @@ def is_allowed_origin(origin: str) -> bool:
     # 명시적으로 허용된 Origin 확인
     if origin in allowed_origins_list:
         return True
-    
+
     # Vercel 도메인 패턴 확인
     if re.match(r"https://.*\.vercel\.app$", origin):
         return True
-    
+
     return False
 
 # 커스텀 CORS 미들웨어를 위한 함수
@@ -58,7 +58,7 @@ from starlette.responses import Response
 class CustomCORSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         origin = request.headers.get("origin")
-        
+
         # OPTIONS 요청 처리 (preflight)
         if request.method == "OPTIONS":
             response = Response(status_code=200)
@@ -72,7 +72,7 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
                 # 허용되지 않은 Origin인 경우에도 CORS 헤더는 반환 (보안상 빈 값)
                 response.headers["Access-Control-Allow-Origin"] = "null"
             return response
-        
+
         # 일반 요청 처리
         response = await call_next(request)
         if origin and is_allowed_origin(origin):
