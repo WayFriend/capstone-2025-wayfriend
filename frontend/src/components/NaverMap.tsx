@@ -218,7 +218,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
             const currentPort = window.location.port;
             const currentOrigin = `${currentProtocol}//${currentHostname}${currentPort ? ':' + currentPort : ''}`;
             const isPreviewDomain = currentHostname.includes('-') && currentHostname.includes('.vercel.app') &&
-                                   currentHostname !== 'capstone-2025-wayfriend.vercel.app';
+                                   currentHostname !== 'capstone-2025-wayfriend-eight.vercel.app';
 
             // 개발자용 상세 정보는 콘솔에만 출력
             console.error('[ERROR] 네이버 지도 인증 실패 콜백 호출됨');
@@ -234,7 +234,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
             if (isPreviewDomain) {
               // 프리뷰 도메인인 경우
               console.warn('[WARN] Vercel 프리뷰 도메인에서 지도 인증 실패 (예상된 동작)');
-              console.warn('[WARN] 프로덕션 도메인(https://capstone-2025-wayfriend.vercel.app)에서는 정상 작동합니다.');
+              console.warn('[WARN] 프로덕션 도메인(https://capstone-2025-wayfriend-eight.vercel.app)에서는 정상 작동합니다.');
               setError('프리뷰 환경에서는 지도가 작동하지 않습니다. 프로덕션 배포에서 확인해주세요.');
             } else {
               // 프로덕션 도메인인 경우
@@ -271,7 +271,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
               if (bgImage.includes('auth_fail')) {
                 const currentOrigin = `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`;
                 const isPreviewDomain = window.location.hostname.includes('-') && window.location.hostname.includes('.vercel.app') &&
-                                       window.location.hostname !== 'capstone-2025-wayfriend.vercel.app';
+                                       window.location.hostname !== 'capstone-2025-wayfriend-eight.vercel.app';
 
                 // 개발자용 상세 정보는 콘솔에만 출력
                 console.error('[ERROR] 인증 실패 배경 이미지 감지됨:', bgImage);
@@ -280,7 +280,7 @@ const NaverMap: React.FC<NaverMapProps> = ({
                 if (isPreviewDomain) {
                   // 프리뷰 도메인인 경우
                   console.warn('[WARN] Vercel 프리뷰 도메인에서 지도 인증 실패 (예상된 동작)');
-                  console.warn('[WARN] 프로덕션 도메인(https://capstone-2025-wayfriend.vercel.app)에서는 정상 작동합니다.');
+                  console.warn('[WARN] 프로덕션 도메인(https://capstone-2025-wayfriend-eight.vercel.app)에서는 정상 작동합니다.');
                   setError('프리뷰 환경에서는 지도가 작동하지 않습니다. 프로덕션 배포에서 확인해주세요.');
                 } else {
                   // 프로덕션 도메인인 경우
