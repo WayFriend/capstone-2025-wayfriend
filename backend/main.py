@@ -40,14 +40,20 @@ allowed_origins_list = [
 
 def is_allowed_origin(origin: str) -> bool:
     """Origin이 허용된 도메인인지 확인 (Vercel 도메인 포함)"""
+    if not origin:
+        return False
+    
     # 명시적으로 허용된 Origin 확인
     if origin in allowed_origins_list:
+        print(f"[CORS] Origin 허용 (명시적): {origin}")
         return True
 
     # Vercel 도메인 패턴 확인
     if re.match(r"https://.*\.vercel\.app$", origin):
+        print(f"[CORS] Origin 허용 (Vercel 패턴): {origin}")
         return True
-
+    
+    print(f"[CORS] Origin 거부: {origin}")
     return False
 
 # 커스텀 CORS 미들웨어를 위한 함수
@@ -58,17 +64,21 @@ from starlette.responses import Response
 class CustomCORSMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         origin = request.headers.get("origin")
+        print(f"[CORS Middleware] 요청: {request.method} {request.url.path}, Origin: {origin}")
 
         # OPTIONS 요청 처리 (preflight)
         if request.method == "OPTIONS":
+            print(f"[CORS Middleware] OPTIONS 요청 처리 시작")
             response = Response(status_code=200)
             if origin and is_allowed_origin(origin):
+                print(f"[CORS Middleware] Origin 허용, CORS 헤더 추가")
                 response.headers["Access-Control-Allow-Origin"] = origin
                 response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
                 response.headers["Access-Control-Allow-Headers"] = "*"
                 response.headers["Access-Control-Allow-Credentials"] = "true"
                 response.headers["Access-Control-Max-Age"] = "3600"
             else:
+                print(f"[CORS Middleware] Origin 거부됨")
                 # 허용되지 않은 Origin인 경우에도 CORS 헤더는 반환 (보안상 빈 값)
                 response.headers["Access-Control-Allow-Origin"] = "null"
             return response
