@@ -38,7 +38,7 @@ app.add_middleware(
         *vercel_domains,
         *additional_origins,
     ],
-    allow_origin_regex=r"https://.*\.vercel\.app",  # Vercel 프리뷰 배포 지원 (모든 *.vercel.app 도메인 허용)
+    allow_origin_regex=r"https://.*\.vercel\.app$",  # Vercel 프리뷰 배포 지원 (모든 *.vercel.app 도메인 허용)
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
