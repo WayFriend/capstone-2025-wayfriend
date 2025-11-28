@@ -1,7 +1,6 @@
 # backend/main.py
 
 from fastapi import FastAPI
-from starlette.middleware.cors import CORSMiddleware
 from app.auth import models
 from app import database
 from app.auth import api
@@ -21,30 +20,68 @@ vercel_domains = [
 
 # 환경 변수에서 추가 허용 도메인 가져오기
 import os
+import re
 additional_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 additional_origins = [origin.strip() for origin in additional_origins if origin.strip()]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:5173",
-        "http://34.239.248.132:3000",
-        "http://34.239.248.132:5173",
-        "http://34.239.248.132:8000",  # 백엔드 자체 origin도 추가
-        "https://34.239.248.132",  # HTTPS 백엔드 URL 추가
-        *vercel_domains,
-        *additional_origins,
-    ],
-    allow_origin_regex=r"https://.*vercel\.app",  # Vercel 프리뷰 배포 지원 (더 포괄적인 패턴)
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=3600,
-)
+# 허용된 Origin 목록
+allowed_origins_list = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://34.239.248.132:3000",
+    "http://34.239.248.132:5173",
+    "http://34.239.248.132:8000",  # 백엔드 자체 origin도 추가
+    "https://34.239.248.132",  # HTTPS 백엔드 URL 추가
+    *vercel_domains,
+    *additional_origins,
+]
+
+def is_allowed_origin(origin: str) -> bool:
+    """Origin이 허용된 도메인인지 확인 (Vercel 도메인 포함)"""
+    # 명시적으로 허용된 Origin 확인
+    if origin in allowed_origins_list:
+        return True
+
+    # Vercel 도메인 패턴 확인
+    if re.match(r"https://.*\.vercel\.app$", origin):
+        return True
+
+    return False
+
+# 커스텀 CORS 미들웨어를 위한 함수
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
+
+class CustomCORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        origin = request.headers.get("origin")
+
+        # OPTIONS 요청 처리 (preflight)
+        if request.method == "OPTIONS":
+            response = Response(status_code=200)
+            if origin and is_allowed_origin(origin):
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+                response.headers["Access-Control-Allow-Headers"] = "*"
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+                response.headers["Access-Control-Max-Age"] = "3600"
+            else:
+                # 허용되지 않은 Origin인 경우에도 CORS 헤더는 반환 (보안상 빈 값)
+                response.headers["Access-Control-Allow-Origin"] = "null"
+            return response
+
+        # 일반 요청 처리
+        response = await call_next(request)
+        if origin and is_allowed_origin(origin):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Expose-Headers"] = "*"
+        return response
+
+app.add_middleware(CustomCORSMiddleware)
 
 # DB 테이블 생성
 models.Base.metadata.create_all(bind=database.engine)
