@@ -26,7 +26,8 @@ export const getApiBaseUrl = (): string => {
 
   // 개발 환경: 환경 변수가 있으면 사용, 없으면 EC2 백엔드 기본값 사용
   const envUrl = import.meta.env.VITE_API_BASE_URL;
-  return envUrl || 'http://34.239.248.132:8000';  // EC2 백엔드 주소
+  // Nginx reverse proxy를 통해 HTTPS 제공 (포트 443)
+  return envUrl || 'https://34.239.248.132';  // EC2 백엔드 HTTPS 주소
 };
 
 // 기본 API Base URL (런타임에 결정)
